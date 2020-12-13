@@ -1,7 +1,0 @@
-package DRAM;
-    interface DRAM(Integer min_block, Integer size);
-    endinterface : DRAM
-
-    module mkDRAM #(Integer init) (DRAM(Integer min_block, Integer size));
-    endmodule;
-endpackage : DRAM
