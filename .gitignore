@@ -1,2 +1,7 @@
 *.cxx
 *.h
+*.bo
+*.ba
+*.so
+*.o
+out
