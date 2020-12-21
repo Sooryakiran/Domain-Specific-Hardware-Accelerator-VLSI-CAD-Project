@@ -25,6 +25,8 @@ ops =  ["NOP",
         "IS_EQ",
         
         "JMP", 
+        "JMPIF",
+
         "LOAD_8",
         "LOAD_16",
         "LOAD_32",
@@ -62,7 +64,11 @@ def asg8(line):
     tokens = line.split()
     op     = op_to_bin(tokens[0])
     reg    = reg_to_bin(tokens[1])
-    value  = int_to_bin(int(tokens[2]), 16)
+    if (WORD_LENGTH >= 64):
+        value  = int_to_bin(int(tokens[2]), 32)
+    else:
+        value  = int_to_bin(int(tokens[2]), 16)
+    # print(fill(op + reg + value))
     return fill(op + reg + value)
 
 def asg16(line):
@@ -76,7 +82,21 @@ def asg32(line):
 
     if "." in number:
         value = float(number)
-        value = float_to_f32(value).split("0b")[1]
+        value = float_to_f32(value).split("0b")
+        other = value[0]
+        value = value[1]
+
+        while(len(value) != 32):
+            value = "0" + value
+
+        if other == '-':
+            out = []
+            for i in range(len(value)):
+                if value[i] == '0' :
+                    out.append('1')
+                else:
+                    out.append('0')
+            value = ''.join(out)
 
     else:
         value = int_to_bin(int(number), 32)
@@ -111,6 +131,10 @@ def jmp(line):
     tokens = line.split()
     return traditional(tokens[0], tokens[1], "NO", "NO", "NO")
 
+def jmpif(line):
+    tokens = line.split()
+    return traditional(tokens[0], tokens[1], tokens[2], "NO", "NO")
+
 def load(line):
     tokens = line.split()
     return traditional(tokens[0], tokens[1], "NO", "NO", tokens[2])
@@ -135,7 +159,8 @@ def main(file_name):
         i = 0
         for line in lines:
             i+=1
-            try:
+            # try:
+            if True:
                 tokens = line.split()
                 op = tokens[0]
 
@@ -159,6 +184,8 @@ def main(file_name):
                     outs.append(iseq(line))
                 elif op == "JMP":
                     outs.append(jmp(line))
+                elif op == "JMPIF":
+                    outs.append(jmpif(line))
                 elif op == "LOAD_8" or op == "LOAD_16" or op == "LOAD_32":
                     outs.append(load(line))
                 elif op == "STORE_8" or op == "STORE_16" or op == "STORE_32":
@@ -169,11 +196,11 @@ def main(file_name):
                     outs.append(vecmin(line))
                 else:
                     raise()
-            except:
+            # except:
                 
                 
-                print("[ERROR] Error on line", i, ":", line)
-                exit()
+            #     print("[ERROR] Error on line", i, ":", line)
+            #     exit()
 
     fp = open(OUT, 'w')
     for item in outs:

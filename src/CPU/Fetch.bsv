@@ -18,7 +18,7 @@ package Fetch;
 
     interface Fetch;
         interface Put #(Bit #(SizeOf #(RegPackets))) store_to_reg;
-        method Action flush;
+        interface Put #(Bit #(`DATA_LENGTH)) put_branch;
         interface Client #(Bit #(`PC_SIZE), Bit #(`WORD_LENGTH)) imem_client; 
         interface Get #(Bit #(`DecodedInstructionSize)) get_decoded; 
     endinterface
@@ -32,15 +32,19 @@ package Fetch;
         Vector #(8, Reg #(Bit #(`DATA_LENGTH))) regs <- replicateM(mkRegU);
 
         method Bit #(`DATA_LENGTH) load(Regname name);
+
             let x = pack(name);
             return ((x<8)? regs[x] : 0);
         endmethod
 
         method Action store (Bit #(`DATA_LENGTH) data, Regname name);
             action
+                // $display ("STORED");
                 let x = pack(name);
                 if (x < 8)
+                begin
                     regs[x] <= data;
+                end
             endaction
         endmethod
     endmodule : mkRegistors
@@ -61,10 +65,12 @@ package Fetch;
      
         PulseWire got_instruction <- mkPulseWire();
         PulseWire wait_instruction <- mkPulseWire();
+        // PulseWire branch_alert <- mkPulseWire();
 
         RWire #(RegPackets) store_from_exec <- mkRWire();
         RWire #(RegPackets) store_from_fetch <- mkRWire();
-
+        RWire #(Bit #(`DATA_LENGTH)) branch <- mkRWire();
+        
         function Bit #(`DATA_LENGTH) check_load (Regname r) ;
             if (r == NO)
             begin
@@ -120,18 +126,21 @@ package Fetch;
 
         `ifndef SMALL_WIDTH
         (* descending_urgency = "master_heavy, store_request" *)
-        rule master_heavy (`WORD_LENGTH >= 64);
+        (* preempts = "flush_and_branch, master_heavy" *)
+        rule master_heavy (`WORD_LENGTH >= 64 );
             let x = instructions.first();
-            // $display(debug_clk ,":", fshow(instructions.first().code));
-
+            $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
+            
             if (x.code == ASG_8 || x.code == ASG_16 || x.code == ASG_32)
             begin
+                HeavyData heavy = unpack(pack(x));
                 RegPackets current_store = RegPackets {
-                                                data : extend(pack(x)[41:10]),
+                                                data : heavy.data,
                                                 register : x.src1};
 
+
+                
                 store_from_fetch.wset(current_store);
-                // regs.store(extend(pack(x)[41:10]), x.src1);
                 
             end
             else
@@ -152,29 +161,34 @@ package Fetch;
         `endif
 
         `ifndef HEAVY_WIDTH
-        // (* descending_urgency = "slave_32_bit, master_32_bit, store_request" *)
+        (* descending_urgency = "slave_32_bit, master_32_bit, store_request" *)
+        (* preempts = "flush_and_branch, (master_32_bit, increment_pc)" *)
         rule slave_32_bit (`WORD_LENGTH < 64 && wait_for_next_half == 1);
+            
             let x = instructions.first();
+            
             // $display(debug_clk ,":", "ASG_32_Continue");
             // regs.store(extend(pack(x)), x.src1);
 
             RegPackets current_store = RegPackets {
                             data : extend(pack(x)),
-                            register : x.src1};
+                            register : waiting_address};
 
             store_from_fetch.wset(current_store);
+            
 
             wait_for_next_half <= 0;
             instructions.deq();
         endrule
 
-        rule master_32_bit (`WORD_LENGTH < 64 && wait_for_next_half == 0);
+        rule master_32_bit (`WORD_LENGTH < 64 && wait_for_next_half == 0 );
             let x = instructions.first();
-            // $display(debug_clk ,":", fshow(instructions.first().code));
+            $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             if(x.code == ASG_32)
             begin
                 wait_for_next_half <= 1;
                 waiting_address <= x.src1;
+                
             end
             else
             begin
@@ -182,8 +196,9 @@ package Fetch;
                 begin
                     // regs.store(extend(pack(x)[25:10]), x.src1);
                     RegPackets current_store = RegPackets {
-                                    data : extend(pack(x)[25:10]),
+                                    data : extend(pack(x)[22:7]),
                                     register : x.src1};
+                    // $display ("%b\n%b", pack(x), pack(x)[22:7]);
                     store_from_fetch.wset(current_store);
                 end
                 else
@@ -209,24 +224,31 @@ package Fetch;
         
 
         rule store_request;
-            if(store_from_exec.wget() matches tagged Valid .packet_ex &&& store_from_exec.wget() matches tagged Valid .packet_ft)
+            if(store_from_exec.wget() matches tagged Valid .packet_ex)
             begin
-                if(packet_ex.register != packet_ft.register)
+                if(store_from_fetch.wget() matches tagged Valid .packet_ft)
                 begin
-                    regs.store(packet_ex.data, packet_ex.register);
-                    regs.store(packet_ft.data, packet_ft.register);
+                    if(packet_ex.register != packet_ft.register)
+                    begin
+                        regs.store(packet_ex.data, packet_ex.register);
+                        regs.store(packet_ft.data, packet_ft.register);
+                    end
+                    else regs.store(packet_ft.data, packet_ft.register);
                 end
-                else regs.store(packet_ft.data, packet_ft.register);
+                else regs.store(packet_ex.data, packet_ex.register);
             end
-            else if(store_from_exec.wget() matches tagged Valid .packet_ex) regs.store(packet_ex.data, packet_ex.register);
-            else if(store_from_exec.wget() matches tagged Valid .packet_ft) regs.store(packet_ft.data, packet_ft.register);
+            else if(store_from_fetch.wget() matches tagged Valid .packet_ft) 
+            begin 
+                // $display ("Assign : ", packet_ft.data, packet_ft.register);
+                regs.store(packet_ft.data, packet_ft.register);
+            end
         endrule
 
 
-        // rule debug;
-        //     decoded.deq();
+        rule debug;
+            // $display ("PC: %d, R3: %d", pc, regs.load(R3));
             
-        // endrule
+        endrule
 
         rule debug_clk_upd;
             debug_clk <= debug_clk + 1;
@@ -237,11 +259,22 @@ package Fetch;
             pc <= pc + 1;
         endrule
 
-        method Action flush;
-            action
-                decoded.clear;
-            endaction
-        endmethod
+        // (*preempts = "flush_and_branch,"*)
+        rule flush_and_branch (branch.wget() matches tagged Valid .branch_id);
+            $display ("Branch recieved ", branch_id);
+            instructions.clear();
+            decoded.clear();
+
+            pc <= branch_id;
+            // else pc <= branch_id;
+
+        endrule
+        // method Action flush (Bit #(`PC_SIZE) new_pointer);
+        //     action
+        //         decoded.clear();
+        //         instruction.clear();
+        //     endaction
+        // endmethod
 
         interface Put store_to_reg = toPut(store_back_to_regs());
 
@@ -251,7 +284,7 @@ package Fetch;
         endinterface
 
         interface Get get_decoded = toGet(send_decoded());
-
+        interface Put put_branch = toPut(branch);
     endmodule : mkFetch
 
 endpackage
