@@ -29,6 +29,7 @@ package CPU;
         endmodule
     endinstance
     
+    
     module tests(Empty);
         Exec exec <- mkExec;
         Fetch fetch <- mkFetch;
