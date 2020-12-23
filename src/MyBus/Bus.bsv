@@ -22,22 +22,36 @@ package Bus;
     
     typedef struct {Bit #(datasize) data;
                     Bit #(TLog #(TDiv #(datasize, granularity))) present;}
-                    DataChunk #(numeric type datasize, numeric type granularity) deriving (Bits, FShow);
+                    DataChunk #(numeric type datasize,
+                                numeric type granularity) deriving (Bits, FShow);
 
-    typedef TAdd#(SizeOf #(ControlSignal), TAdd#(datasize, TAdd#(addrsize, TLog#(TDiv#(datasize, granularity))))) StateSize #(numeric type datasize, numeric type addrsize, numeric type granularity);
-    typedef TLog #(TDiv #(datasize, granularity)) PresentSize #(numeric type datasize, numeric type granularity);
+    typedef TAdd#(SizeOf #(ControlSignal),
+                 TAdd#(datasize, TAdd#(addrsize, TLog#(TDiv#(datasize, granularity)))))
+                 StateSize #(numeric type datasize,
+                             numeric type addrsize,
+                             numeric type granularity);
+
+    typedef TLog #(TDiv #(datasize, granularity)) 
+                  PresentSize #(numeric type datasize,
+                                numeric type granularity);
 
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
 
-    interface Bus #(numeric type masters, numeric type slaves, numeric type datasize, numeric type addrsize, numeric type granularity);
+    interface Bus #(numeric type masters,
+                   numeric type slaves, 
+                   numeric type datasize, 
+                   numeric type addrsize, 
+                   numeric type granularity);
         interface Put #(Chunk #(datasize, addrsize, granularity)) write_to_bus;
         interface Put #(Chunk #(datasize, addrsize, granularity)) write_to_bus_slave;
         interface Get #(Chunk #(datasize, addrsize, granularity)) read_from_bus;
     endinterface
 
-    interface BusMaster #(numeric type datasize, numeric type addrsize, numeric type granularity);
+    interface BusMaster #(numeric type datasize,
+                          numeric type addrsize, 
+                          numeric type granularity);
         // Frontend
         interface Put #(Chunk #(datasize, addrsize, granularity)) job_send;
         interface Get #(Chunk #(datasize, addrsize, granularity)) job_done;
@@ -50,7 +64,9 @@ package Bus;
         interface Get #(Chunk #(datasize, addrsize, granularity)) get_states;
     endinterface
 
-    interface BusSlave #(numeric type datasize, numeric type addrsize, numeric type granularity);
+    interface BusSlave #(numeric type datasize,
+                        numeric type addrsize, 
+                        numeric type granularity);
         // Front end
         interface Get #(Chunk #(datasize, addrsize, granularity)) jobs_recieve;
         interface Put #(Chunk #(datasize, addrsize, granularity)) jobs_done;
@@ -65,9 +81,10 @@ package Bus;
                                 Instances
     -----------------------------------------------------------------------*/
 
-    instance Connectable #(BusSlave #(datasize, addrsize, granularity), Bus #(masters, slaves, datasize, addrsize, granularity));
+    instance Connectable #(BusSlave #(datasize, addrsize, granularity), 
+                           Bus #(masters, slaves, datasize, addrsize, granularity));
         module mkConnection #(BusSlave #(datasize, addrsize, granularity) slave,
-                                Bus #(masters, slaves, datasize, addrsize, granularity) bus) (Empty);
+                              Bus #(masters, slaves, datasize, addrsize, granularity) bus) (Empty);
 
             mkConnection (slave.put_states, bus.read_from_bus);
             mkConnection (slave.get_states, bus.write_to_bus_slave);
@@ -75,57 +92,48 @@ package Bus;
     endinstance
 
 
-    instance Connectable #(BusMaster #(datasize, addrsize, granularity), Bus #(masters, slaves, datasize, addrsize, granularity));
+    instance Connectable #(BusMaster #(datasize, addrsize, granularity),
+                           Bus #(masters, slaves, datasize, addrsize, granularity));
         module mkConnection #(BusMaster #(datasize, addrsize, granularity) master,
                                 Bus #(masters, slaves, datasize, addrsize, granularity) bus) (Empty);
         
-            // Trying now
             mkConnection (bus.read_from_bus, master.put_states);
             mkConnection (bus.write_to_bus, master.get_states);
         endmodule
     endinstance
 
-    instance Connectable #(Vector #(capacity, BusSlave #(datasize, addrsize, granularity)), Bus #(masters, slaves, datasize, addrsize, granularity));
+    instance Connectable #(Vector #(capacity, BusSlave #(datasize, addrsize, granularity)),
+                           Bus #(masters, slaves, datasize, addrsize, granularity));
         module mkConnection #(Vector #(capacity, BusSlave #(datasize, addrsize, granularity)) slave_v,
             Bus #(masters, slaves, datasize, addrsize, granularity) bus) (Empty);
-            
+
             Integer num_capacity = valueOf(capacity);
             for (Integer i = 0; i < num_capacity; i = i + 1)
                 mkConnection(slave_v[i], bus);
-            
         endmodule
     endinstance
 
-    instance Connectable #(Vector #(capacity, BusMaster #(datasize, addrsize, granularity)), Bus #(masters, slaves, datasize, addrsize, granularity));
+    instance Connectable #(Vector #(capacity, BusMaster #(datasize, addrsize, granularity)),
+                           Bus #(masters, slaves, datasize, addrsize, granularity));
         module mkConnection #(Vector #(capacity, BusMaster #(datasize, addrsize, granularity)) master_v,
             Bus #(masters, slaves, datasize, addrsize, granularity) bus) (Empty);
             
             Integer num_capacity = valueOf(capacity);
             for (Integer i = 0; i < num_capacity; i = i + 1)
                 mkConnection(master_v[i], bus);
-
         endmodule
     endinstance
 
-
-
     instance Arbitable #(BusMaster#(datasize, addrsize, granularity));
-        module mkArbiterRequest #(BusMaster#(datasize, addrsize, granularity) bus_master) (ArbiterRequest_IFC);
+        module mkArbiterRequest #(BusMaster#(datasize, addrsize, granularity) bus_master)
+        (ArbiterRequest_IFC);
 
-            method Bool request;
-                return bus_master.valid;
-            endmethod
-
-            method Bool lock;
-                return False;
-            endmethod
-
-            method Action grant;
-                bus_master.granted(True);
-            endmethod
+            method Bool request; return bus_master.valid;   endmethod
+            method Bool lock;    return False;              endmethod
+            method Action grant; bus_master.granted(True);  endmethod
         
         endmodule
-        endinstance
+    endinstance
         
     /*----------------------------------------------------------------------
                                 Modules
@@ -151,8 +159,7 @@ package Bus;
             if(is_my_job (reading_val.addr) && !busy)
             begin
                 busy <= True;
-                jobs.enq(reading_val);
-                $display (id, " Yaay! I got a job!");
+                jobs.enq(reading_val);z
             end
         endrule
 
@@ -172,24 +179,21 @@ package Bus;
 
         interface Put put_states = toPut (readings);
         interface Get get_states = toGet (done_to_sent);
-        // Front end
+       
         interface Put jobs_done = toPut (done);
         interface Get jobs_recieve = toGet (jobs);
-
     endmodule
 
     module mkBusMaster #(Integer id) (BusMaster #(datasize, addrsize, granularity));
         
-        Reg #(Bool) need_bus <- mkReg(False);
-        PulseWire no_traffic <- mkPulseWire();
+        Reg #(Bool) need_bus    <- mkReg(False);
+        Reg #(Bool) busy        <- mkReg(False);
+        PulseWire no_traffic    <- mkPulseWire();
         
-        Reg #(Bool) busy <- mkReg(False);
-
-        RWire #(Chunk #(datasize, addrsize, granularity)) to_read <- mkRWire;
-        FIFOF #(Chunk #(datasize, addrsize, granularity)) to_write <- mkBypassFIFOF;
-        
+        RWire #(Chunk #(datasize, addrsize, granularity)) to_read       <- mkRWire;
+        FIFOF #(Chunk #(datasize, addrsize, granularity)) to_write      <- mkBypassFIFOF;
         FIFOF #(Chunk #(datasize, addrsize, granularity)) buff_to_write <- mkBypassFIFOF;
-        FIFOF #(Chunk #(datasize, addrsize, granularity)) responses <- mkBypassFIFOF;
+        FIFOF #(Chunk #(datasize, addrsize, granularity)) responses     <- mkBypassFIFOF;
         
         rule need_bus_update (busy == False);
             need_bus <= buff_to_write.notEmpty();
@@ -200,10 +204,8 @@ package Bus;
         endrule
 
         rule get_response (busy);
-            
             if(to_read.wget() matches tagged Valid .readings)
             begin
-                
                 if(readings.control == Response)
                 begin
                     $display (fshow(readings));
@@ -220,7 +222,6 @@ package Bus;
                 $display (id, " Available");
                 let x = buff_to_write.first();
                 to_write.enq(x); 
-
                 buff_to_write.deq();
                 if (x.control == Read)
                     busy <= True;
@@ -238,7 +239,7 @@ package Bus;
 
         interface put_states = toPut(to_read);
         interface get_states = toGet(to_write);
-        interface job_send = toPut(buff_to_write);
+        interface job_send   = toPut(buff_to_write);
 
     endmodule
 
@@ -249,23 +250,22 @@ package Bus;
         
 
         Integer master_count = valueOf(masters);
-        Integer slave_count = valueOf(slaves);
+        Integer slave_count  = valueOf(slaves);
         
 
-        Arbiter_IFC #(masters) master_arb_clients <- mkArbiter(False);
-        
-        Vector #(masters, ArbiterRequest_IFC) requests <- mapM(mkArbiterRequest, master_vec);
+        Arbiter_IFC #(masters) master_arb_clients       <- mkArbiter(False);
+        Vector #(masters, ArbiterRequest_IFC) requests  <- mapM(mkArbiterRequest, master_vec);
         zipWithM(mkConnection, master_arb_clients.clients, requests);
 
         
         Reg #(Chunk #(datasize, addrsize, granularity)) bus_state <- mkReg(Chunk {
-                                                                    control : Response,
-                                                                    data : ?,
-                                                                    addr : ?,
-                                                                    present : ?
-                                                                });
+                                                                        control : Response,
+                                                                        data    : ?,
+                                                                        addr    : ?,
+                                                                        present : ?
+                                                                    });
 
-        RWire #(Chunk #(datasize, addrsize, granularity)) bus_state_inc <- mkRWire;
+        RWire #(Chunk #(datasize, addrsize, granularity)) bus_state_inc    <- mkRWire;
         RWire #(Chunk #(datasize, addrsize, granularity)) bus_state_slaves <- mkRWire;
 
 
@@ -299,9 +299,9 @@ package Bus;
             if(debug_clk > 20) $finish();
         endrule
 
-        interface Put write_to_bus = toPut(bus_state_inc);
+        interface Put write_to_bus       = toPut(bus_state_inc);
         interface Put write_to_bus_slave = toPut(bus_state_slaves);
-        interface Get read_from_bus = toGet(bus_state);          
+        interface Get read_from_bus      = toGet(bus_state);          
     endmodule
 
 
