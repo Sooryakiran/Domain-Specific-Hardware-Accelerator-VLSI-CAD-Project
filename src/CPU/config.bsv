@@ -1,10 +1,13 @@
 `ifndef CPU_CONF
     `define CPU_CONF
     `define WORD_LENGTH 32
-    `define DATA_LENGTH 32
-    
     `define SMALL_WIDTH     // Comment this line for >32 bits. Explaination: ASG_32 instruction has 64 bit length even for 32 bit systems. :(
 
+    `define DATA_LENGTH 32
+    `define BUS_DATA_LEN 64
+    `define ADDR_LENGTH 32
+    `define GRANULARITY 8 // Lowest addressible unit size = 1 Byte in RAM
+    
 /*-------------------------------------------------------------------------------
                         DONOT MODIFY ANYTHING BELOW THIS LINE
 -------------------------------------------------------------------------------*/

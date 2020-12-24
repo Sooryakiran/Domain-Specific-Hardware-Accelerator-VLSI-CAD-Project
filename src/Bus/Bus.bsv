@@ -8,6 +8,26 @@ package Bus;
     import FIFOF::*;
     import SpecialFIFOs::*;
 
+
+    /*----------------------------------------------------------------------
+                                Exports
+    -----------------------------------------------------------------------*/
+    export ControlSignal (..);
+    export Chunk (..);
+    export PresentSize (..);
+
+    export Bus (..);
+    export BusMaster (..);
+    export BusSlave (..);
+
+    export mkBusSlave;
+    export mkBusMaster;
+    export mkBus;
+
+    /*----------------------------------------------------------------------
+                                Typedefs
+    -----------------------------------------------------------------------*/
+    
     typedef enum {Response, Read, Write} ControlSignal deriving (Bits, Eq, FShow);
 
     typedef struct {ControlSignal control;
@@ -156,10 +176,12 @@ package Bus;
         endfunction
 
         rule check_for_requests (readings.wget() matches tagged Valid .reading_val);
-            if(is_my_job (reading_val.addr) && !busy)
+            
+            if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
             begin
+                // $display (id, " got job ", fshow(reading_val));
                 busy <= True;
-                jobs.enq(reading_val);z
+                jobs.enq(reading_val);
             end
         endrule
 
@@ -167,7 +189,7 @@ package Bus;
             let x = done.first();
             done_to_sent.enq(x);
             busy <= False;
-            $display (id, " I did my job!");
+            // $display (id, " I did my job!");
             done.deq();
         endrule
 
@@ -199,17 +221,18 @@ package Bus;
             need_bus <= buff_to_write.notEmpty();
         endrule
 
-        rule debug;
-            $display (id, " Need bus? A: ", need_bus);
-        endrule
+        // rule debug (need_bus == True);
+        //     $display (id, " Need bus? A: ", need_bus);
+        // endrule
 
         rule get_response (busy);
             if(to_read.wget() matches tagged Valid .readings)
             begin
                 if(readings.control == Response)
                 begin
-                    $display (fshow(readings));
-                    $display (id, " ", fshow(readings));    
+                    // $display (fshow(readings));
+                    // $display (id, " ", fshow(readings));
+                    responses.enq(readings);   
                     busy <= False;
                 end
             end
@@ -219,7 +242,7 @@ package Bus;
             // $display (id, " Granted");
             if(!busy && permission && no_traffic && buff_to_write.notEmpty())
             begin
-                $display (id, " Available");
+                // $display (id, " Available");
                 let x = buff_to_write.first();
                 to_write.enq(x); 
                 buff_to_write.deq();
@@ -240,6 +263,7 @@ package Bus;
         interface put_states = toPut(to_read);
         interface get_states = toGet(to_write);
         interface job_send   = toPut(buff_to_write);
+        interface job_done   = toGet(responses);
 
     endmodule
 
@@ -273,12 +297,12 @@ package Bus;
         rule update_states;
             if (bus_state_inc.wget matches tagged Valid .x) 
             begin
-                $display (debug_clk, " Masters win");
+                // $display (debug_clk, " Masters win");
                 bus_state <= x;
             end
             else if (bus_state_slaves.wget matches tagged Valid .y)
             begin
-                $display (debug_clk, " Slaves win");
+                // $display (debug_clk, " Slaves win");
                 // $display (fshow(y));
                 bus_state <= y;
 
@@ -365,8 +389,6 @@ package Bus;
         rule debug;
             cntr <= cntr + 1;
         endrule
-
-            // $display ("All tests done");
         
     endmodule
 endpackage : Bus
