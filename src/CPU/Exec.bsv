@@ -6,48 +6,59 @@ package Exec;
     import ClientServer::*;
     import FloatingPoint::*;
     import Bus::*;
-    `include <config.bsv>
+    import CPUDefines::*;
 
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
-    interface Exec;
-        interface Put #(Bit #(`DecodedInstructionSize)) put_decoded;  
-        interface Get #(Bit #(SizeOf #(RegPackets))) send_computed_value;
-        interface Get #(Bit #(`DATA_LENGTH)) get_branch;
+    interface Exec #(numeric type datalength,
+                     numeric type busdatalength,
+                     numeric type busaddrlength,
+                     numeric type granularity);
+        interface Put #(Bit #(DecodedInstructionSize #(datalength))) put_decoded;  
+        interface Get #(Bit #(SizeRegPackets #(datalength))) send_computed_value;
+        interface Get #(Bit #(datalength)) get_branch;
 
-        interface Put #(Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY)) put_from_bus;
-        interface Get #(Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY)) get_to_bus;
+        interface Put #(Chunk #(busdatalength, busaddrlength, granularity)) put_from_bus;
+        interface Get #(Chunk #(busdatalength, busaddrlength, granularity)) get_to_bus;
 
     endinterface
 
     /*----------------------------------------------------------------------
                             Module Declarations
     -----------------------------------------------------------------------*/
-    module mkExec (Exec);
-        FIFOF #(Bit #(`DecodedInstructionSize)) incoming    <- mkBypassFIFOF;
-        FIFOF #(RegPackets)                     out_to_regs <- mkBypassFIFOF;
-        RWire #(Bit #(`DATA_LENGTH))            branch      <- mkRWire();
-        Reg   #(Bit #(32))                      debug_clk   <- mkReg(0);
-        Reg   #(Bool)                           wait_load   <- mkReg(False);
-        Reg   #(Bool)                           wait_store  <- mkReg(False);
-        Reg   #(Regname)                        wait_reg    <- mkReg(NO);
-        FIFOF #(Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY)) bus_out <- mkBypassFIFOF;
-        FIFOF #(Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY)) bus_in <- mkBypassFIFOF;
+    module mkExec (Exec #(datalength, busdatalength, busaddrlength, granularity))
+        provisos (Add# (na, 32, datalength),     // Datalength always >= 32
+                  Add# (nb, 32, busdatalength),  // Busdatalen >= 32
+                  Add# (nc, 16, datalength),
+                  Add# (nf, 16, busdatalength),
+                  Add# (nd, 8,  datalength),
+                  Add# (ne, 8,  busdatalength),
+                  Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)));    // Just to satisfy the compiler
+
+        FIFOF #(Bit #(DecodedInstructionSize#(datalength))) incoming    <- mkBypassFIFOF;
+        FIFOF #(RegPackets #(datalength))                   out_to_regs <- mkBypassFIFOF;
+        RWire #(Bit #(datalength))                          branch      <- mkRWire();
+        Reg   #(Bit #(32))                                  debug_clk   <- mkReg(0);
+        Reg   #(Bool)                                       wait_load   <- mkReg(False);
+        Reg   #(Bool)                                       wait_store  <- mkReg(False);
+        Reg   #(Regname)                                    wait_reg    <- mkReg(NO);
+        FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_out <- mkBypassFIFOF;
+        FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_in  <- mkBypassFIFOF;
 
 
         rule load_from_bus (wait_load == True && wait_reg != NO);
             let x = bus_in.first(); bus_in.deq();
             let p = x.present;
             
-            // Bit #(`DATA_LENGTH) value;
+            // Bit #(datalength) value;
             if (p == 1)
             begin
                 // Load 8
                 Bit #(8) r = truncate(x.data);
-                Bit #(`DATA_LENGTH) value = extend(r);
+                Bit #(datalength) value = extend(r);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : value,
                                         register    : wait_reg};
                 out_to_regs.enq(packet);
@@ -56,9 +67,9 @@ package Exec;
             begin
                 // Load 16
                 Bit #(16) r = truncate(x.data);
-                Bit #(`DATA_LENGTH) value = extend(r);
+                Bit #(datalength) value = extend(r);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                     data        : value,
                     register    : wait_reg};
                 out_to_regs.enq(packet);
@@ -67,21 +78,21 @@ package Exec;
             begin
                 // Load 32
                 Bit #(32) r = truncate(x.data);
-                Bit #(`DATA_LENGTH) value = extend(r);
+                Bit #(datalength) value = extend(r);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                     data        : value,
                     register    : wait_reg};
                 out_to_regs.enq(packet);
             end
 
-            $display (fshow(x));
+            $display ("CPU LOAD ", fshow(x));
 
             wait_load <= False;
             incoming.deq();
         endrule
 
-        function ActionValue #(Bit #(SizeOf #(RegPackets))) send_back_to_regs;
+        function ActionValue #(Bit #(SizeRegPackets #(datalength))) send_back_to_regs;
             actionvalue
                 let x = pack(out_to_regs.first());
                 out_to_regs.deq();
@@ -89,9 +100,9 @@ package Exec;
             endactionvalue
         endfunction
 
-        function Action mov(Bit #(`DATA_LENGTH) value, Regname name);
+        function Action mov(Bit #(datalength) value, Regname name);
             action
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : value,
                                         register    : name};
                 out_to_regs.enq(packet);
@@ -99,13 +110,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action addi8 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action addi8 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(8) int_1          = unpack(truncate(x1));
                 Int #(8) int_2          = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 + int_2);
+                Int #(datalength) out = extend(int_1 + int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name};
                 out_to_regs.enq(packet);
@@ -113,13 +124,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action addi16 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action addi16 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(16) int_1         = unpack(truncate(x1));
                 Int #(16) int_2         = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 + int_2);
+                Int #(datalength) out = extend(int_1 + int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name
                                     };
@@ -128,13 +139,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action addi32 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action addi32 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(32) int_1         = unpack(truncate(x1));
                 Int #(32) int_2         = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 + int_2);
+                Int #(datalength) out = extend(int_1 + int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name
                                     };
@@ -143,14 +154,19 @@ package Exec;
             endaction
         endfunction
 
-        function Action addf32 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action addf32 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
-                Float f32_1 = unpack(x1);
-                Float f32_2 = unpack(x2);
+                Bit #(TAdd #(32, datalength)) temp_x1 = extend(x1);
+                Bit #(TAdd #(32, datalength)) temp_x2 = extend(x2);
+
+                Float f32_1 = unpack(truncate(temp_x1));
+                Float f32_2 = unpack(truncate(temp_x2));
                 Float out   = f32_1 + f32_2;
 
-                RegPackets packet = RegPackets {
-                                        data        : pack(out),
+                Bit #(TAdd #(32, datalength)) temp_data = extend(pack(out));
+
+                RegPackets #(datalength) packet = RegPackets {
+                                        data        : truncate(temp_data),
                                         register    : name
                                     };
                 out_to_regs.enq(packet);
@@ -158,13 +174,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action subi8 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action subi8 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(8) int_1          = unpack(truncate(x1));
                 Int #(8) int_2          = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 - int_2);
+                Int #(datalength) out = extend(int_1 - int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name
                                     };
@@ -173,13 +189,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action subi16 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action subi16 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(16) int_1         = unpack(truncate(x1));
                 Int #(16) int_2         = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 - int_2);
+                Int #(datalength) out = extend(int_1 - int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name
                                     };
@@ -188,13 +204,13 @@ package Exec;
             endaction
         endfunction
 
-        function Action subi32 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action subi32 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
                 Int #(32) int_1         = unpack(truncate(x1));
                 Int #(32) int_2         = unpack(truncate(x2));
-                Int #(`DATA_LENGTH) out = extend(int_1 - int_2);
+                Int #(datalength) out = extend(int_1 - int_2);
 
-                RegPackets packet = RegPackets {
+                RegPackets #(datalength) packet = RegPackets {
                                         data        : pack(out),
                                         register    : name
                                     };
@@ -203,14 +219,19 @@ package Exec;
             endaction
         endfunction
 
-        function Action subf32 (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action subf32 (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
-                Float f32_1 = unpack(x1);
-                Float f32_2 = unpack(x2);
+
+            
+                Float f32_1 = unpack(truncate(x1));
+                Float f32_2 = unpack(truncate(x2));
                 Float out = f32_1 - f32_2;
 
-                RegPackets packet = RegPackets {
-                                        data : pack(out),
+
+                Bit #(TAdd #(32, datalength)) temp_data = extend(pack(out));
+
+                RegPackets #(datalength) packet = RegPackets {
+                                        data : truncate(temp_data),
                                         register : name
                                     };
                 
@@ -219,10 +240,10 @@ package Exec;
             endaction
         endfunction
 
-        function Action iseq (Bit #(`DATA_LENGTH) x1, Bit #(`DATA_LENGTH) x2, Regname name);
+        function Action iseq (Bit #(datalength) x1, Bit #(datalength) x2, Regname name);
             action
-                Bit #(`DATA_LENGTH) out = (x1 == x2)? 1: 0;
-                RegPackets packet   = RegPackets {
+                Bit #(datalength) out = (x1 == x2)? 1: 0;
+                RegPackets #(datalength) packet   = RegPackets {
                                         data        : out,
                                         register    : name
                                     };
@@ -232,14 +253,14 @@ package Exec;
             endaction
         endfunction
 
-        function Action jmp (Bit #(`DATA_LENGTH) dst);
+        function Action jmp (Bit #(datalength) dst);
             action
                 branch.wset(dst);
                 incoming.deq();
             endaction
         endfunction
 
-        function Action jmpif (Bit #(`DATA_LENGTH) dst, Bit #(`DATA_LENGTH) cond);
+        function Action jmpif (Bit #(datalength) dst, Bit #(datalength) cond);
             action
                 if (cond == 1)
                 begin
@@ -249,12 +270,14 @@ package Exec;
             endaction
         endfunction
 
-        function Action load (Bit #(`DATA_LENGTH) addr, Regname dst, Bit #(PresentSize #(`BUS_DATA_LEN, `GRANULARITY)) p);
+        function Action load (Bit #(datalength) addr, Regname dst, Bit #(PresentSize #(busdatalength, granularity)) p);
             action
             
+            // Bit #(64) address = extend(addr);
             // $display ("Load, ", p);
-            Bit #(TAdd #(TMax#(`DATA_LENGTH, `ADDR_LENGTH), 1)) address = extend(addr);
-            Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) x = Chunk {
+            Bit #(TAdd #(datalength, busaddrlength)) address = extend(addr);
+            // Bit #(TAdd#(TMax#(datalength, busaddrlength), 1)) address = extend(addr);
+            Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                         control : Read,
                                                                         data : ?,
                                                                         addr : truncate(address),
@@ -266,14 +289,14 @@ package Exec;
             endaction
         endfunction
 
-        function store (Bit #(`DATA_LENGTH) data, Bit #(`DATA_LENGTH) addr, Regname dst, Bit #(PresentSize #(`BUS_DATA_LEN, `GRANULARITY)) p);
+        function store (Bit #(datalength) data, Bit #(datalength) addr, Regname dst, Bit #(PresentSize #(busdatalength, granularity)) p);
             action
 
             
-            Bit #(TAdd #(TMax#(`DATA_LENGTH, `ADDR_LENGTH), 1)) address = extend(addr);
-            Bit #(TAdd #(TMax#(`DATA_LENGTH, `BUS_DATA_LEN), 1)) data_b = extend(data);
+            Bit #(TAdd #(datalength, busaddrlength)) address = extend(addr);
+            Bit #(TAdd #(datalength, busdatalength)) data_b = extend(data);
 
-            Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) x = Chunk {
+            Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                         control : Write,
                                                                         data : truncate(data_b),
                                                                         addr : truncate(address),
@@ -281,12 +304,13 @@ package Exec;
                                                                     };
             bus_out.enq(x);
             incoming.deq();
-            // $display ("STORAGE ADDRESS ", addr);
+
+            $display ("CPU STORE ", fshow(x));
             endaction
         endfunction
         
         rule exec_master (!wait_load && !wait_store);
-            DecodedInstruction x = unpack(incoming.first);
+            DecodedInstruction #(datalength) x = unpack(incoming.first);
             // $display (fshow(x));
             if (x.code == NOP)      incoming.deq();
             if (x.code == MOV)      mov     (x.src1, x.dst);
@@ -306,7 +330,7 @@ package Exec;
             if (x.code == LOAD_32)  load    (x.src1, x.dst, 4);
             if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
-            if (x.code == STORE_32) incoming.deq();
+            if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
     
         endrule
 

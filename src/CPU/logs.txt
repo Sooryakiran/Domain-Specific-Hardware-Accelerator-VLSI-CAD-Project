@@ -1,0 +1,141 @@
+Internal Bluespec Compiler Error:
+Please report this failure to your Bluespec technical contact.
+If you do not know your contact, you may email support@bluespec.com.
+The following internal error message should be included in your
+correspondence along with any other relevant details:
+Bluespec Compiler (build 2c1ed34)
+assert failed: IAp
+(Env [(load,
+       Prelude.Bit datalength ->
+       CPUDefines.Regname ->
+       Prelude.Bit (Prelude.TLog (Prelude.TDiv busdatalength granularity)) ->
+       Prelude.ActionValue Prelude.PrimUnit),
+      (store,
+       \/(_tctyvar5592 :: #) .
+       \/(_tctyvar5593 :: #) .
+       \/(_tctyvar5594 :: #) .
+       \/(_tctyvar5595 :: #) .
+       \/(_tctyvar5596 :: *) .
+       Prelude.Add _tctyvar5592 _tctyvar5593 (Prelude.TAdd datalength busaddrlength) ->
+       Prelude.Add _tctyvar5594 _tctyvar5595 (Prelude.TAdd datalength busdatalength) ->
+       Prelude.Bit _tctyvar5595 ->
+       Prelude.Bit _tctyvar5593 ->
+       _tctyvar5596 ->
+       Prelude.Bit (Prelude.TLog (Prelude.TDiv busdatalength granularity)) ->
+       Prelude.ActionValue Prelude.PrimUnit),
+      (debug_clk, Prelude.Reg (Prelude.Bit 32)),
+      (branch, PreludeBSV.RWire (Prelude.Bit datalength)),
+      (incoming, FIFOF.FIFOF (Prelude.Bit (Prelude.TAdd 9 (Prelude.TMul 3 datalength)))),
+      (out_to_regs, FIFOF.FIFOF (CPUDefines.RegPackets datalength)),
+      (wait_load, Prelude.Reg Prelude.Bool),
+      (wait_store, Prelude.Reg Prelude.Bool),
+      (wait_reg, Prelude.Reg CPUDefines.Regname),
+      (bus_out, FIFOF.FIFOF (Bus.Chunk busdatalength busaddrlength granularity)),
+      (bus_in, FIFOF.FIFOF (Bus.Chunk busdatalength busaddrlength granularity)),
+      (_tcdict1001, Prelude.Add ne 8 busdatalength),
+      (_tcdict1002, Prelude.Add nd 8 datalength),
+      (_tcdict1003, Prelude.Add nf 16 busdatalength),
+      (_tcdict1004, Prelude.Add nc 16 datalength),
+      (_tcdict1005, Prelude.Add nb 32 busdatalength),
+      (_tcdict1006, Prelude.Add na 32 datalength),
+      (_tcdict1007, Prelude.IsModule _m__ _c__),
+      (_tcdict1513,
+       Prelude.Bits (Bus.Chunk busdatalength busaddrlength granularity)
+       (Prelude.TAdd 2
+	(Prelude.TAdd busdatalength
+	 (Prelude.TAdd busaddrlength (Prelude.TLog (Prelude.TDiv busdatalength granularity)))))),
+      (_tcdict1981, Prelude.Eq (Prelude.Bit (Prelude.TLog (Prelude.TDiv busdatalength granularity)))),
+      (_tcdict4172, Prelude.BitExtend 8 datalength Prelude.Bit),
+      (_tcdict4210, Prelude.BitExtend 8 datalength Prelude.Int),
+      (_tcdict4361, Prelude.BitExtend 16 datalength Prelude.Bit),
+      (_tcdict4399, Prelude.BitExtend 16 datalength Prelude.Int),
+      (_tcdict4588, Prelude.BitExtend 32 datalength Prelude.Int),
+      (_tcdict4799, Prelude.BitExtend 32 datalength Prelude.Bit),
+      (_tcdict4959, Prelude.BitExtend 32 (Prelude.TAdd 32 datalength) Prelude.Bit),
+      (_tcdict8406, Prelude.Add busaddrlength datalength (Prelude.TAdd datalength busaddrlength)),
+      (_tcdict8407, Prelude.Add busdatalength datalength (Prelude.TAdd datalength busdatalength)),
+      (_tcdict8423,
+       Prelude.Literal (Prelude.Bit (Prelude.TLog (Prelude.TDiv busdatalength granularity)))),
+      (_tcdict8891, Prelude.Literal (Prelude.Bit 32)),
+      (_tcdict9722, Prelude.Monad _m__)]
+     [(_c__, * -> *),
+      (_m__, * -> *),
+      (datalength, #),
+      (busdatalength, #),
+      (busaddrlength, #),
+      (granularity, #),
+      (na, #),
+      (nb, #),
+      (nc, #),
+      (nf, #),
+      (nd, #),
+      (ne, #)]
+     [[Prelude.TAdd busdatalength datalength, Prelude.TAdd datalength busdatalength],
+      [Prelude.TAdd busaddrlength datalength, Prelude.TAdd datalength busaddrlength],
+      [Prelude.SizeOf (Bus.Chunk busdatalength busaddrlength granularity),
+       Prelude.TAdd 2
+       (Prelude.TAdd busdatalength
+	(Prelude.TAdd busaddrlength (Prelude.TLog (Prelude.TDiv busdatalength granularity))))],
+      [datalength, Prelude.TAdd nd 8, Prelude.TAdd nc 16, Prelude.TAdd na 32],
+      [busdatalength, Prelude.TAdd ne 8, Prelude.TAdd nf 16, Prelude.TAdd nb 32]]
+     PredEnv,
+ Exec.Exec
+   ·datalength
+   ·busdatalength
+   ·busaddrlength
+   ·granularity
+   (GetPut.Put
+      ·(Prelude.Bit (Prelude.TAdd 9 (Prelude.TMul 3 datalength)))
+      (\ (x :: Prelude.Bit (Prelude.TAdd 9 (Prelude.TMul 3 datalength))) .
+       .FIFOF.enq ·(Prelude.Bit (Prelude.TAdd 9 (Prelude.TMul 3 datalength))) incoming x))
+   (GetPut.Get
+      ·(Prelude.Bit (Prelude.TAdd datalength 4))
+      (let x :: Prelude.Bit (Prelude.TAdd datalength 4)
+	   x =
+	     .Prelude.pack
+	       ·(CPUDefines.RegPackets datalength)
+	       ·(Prelude.TAdd datalength 4)
+	       (CPUDefines.Prelude.Bits~CPUDefines.RegPackets~_v101~_v100=
+		  ·datalength
+		  ·(Prelude.TAdd datalength 4)
+		  (PrimBuildUndefined ·(Prelude.Add datalength 4 (Prelude.TAdd datalength 4)) _ 1))
+	       (.FIFOF.first ·(CPUDefines.RegPackets datalength) out_to_regs)
+	   -- IdProp: x[IdP_keep]
+       in  Prelude.bind_=
+	     ·Prelude.ActionValue
+	     ·Prelude.PrimUnit
+	     ·(Prelude.Bit (Prelude.TAdd datalength 4))
+	     Prelude.Prelude.Monad~Prelude.ActionValue=
+	     (.FIFOF.deq ·(CPUDefines.RegPackets datalength) out_to_regs)
+	     (Prelude.ActionValue
+		·(Prelude.Bit (Prelude.TAdd datalength 4))
+		(\ (aw :: Prelude.ActionWorld) .
+		 Prelude.AVStruct ·(Prelude.Bit (Prelude.TAdd datalength 4)) x PrimNoActions aw)))),
+ GetPut.Get
+   ·(Prelude.Bit (Prelude.TAdd datalength 4))
+   (let x :: Prelude.Bit (Prelude.TAdd datalength 4)
+	x =
+	  .Prelude.pack
+	    ·(CPUDefines.RegPackets datalength)
+	    ·(Prelude.TAdd datalength 4)
+	    (CPUDefines.Prelude.Bits~CPUDefines.RegPackets~_v101~_v100=
+	       ·datalength
+	       ·(Prelude.TAdd datalength 4)
+	       (PrimBuildUndefined ·(Prelude.Add datalength 4 (Prelude.TAdd datalength 4)) _ 1))
+	    (.FIFOF.first ·(CPUDefines.RegPackets datalength) out_to_regs)
+	-- IdProp: x[IdP_keep]
+    in  Prelude.bind_=
+	  ·Prelude.ActionValue
+	  ·Prelude.PrimUnit
+	  ·(Prelude.Bit (Prelude.TAdd datalength 4))
+	  Prelude.Prelude.Monad~Prelude.ActionValue=
+	  (.FIFOF.deq ·(CPUDefines.RegPackets datalength) out_to_regs)
+	  (Prelude.ActionValue
+	     ·(Prelude.Bit (Prelude.TAdd datalength 4))
+	     (\ (aw :: Prelude.ActionWorld) .
+	      Prelude.AVStruct ·(Prelude.Bit (Prelude.TAdd datalength 4)) x PrimNoActions aw))),
+ (GetPut.Get (Prelude.Bit (Prelude.TAdd datalength 4)),
+  GetPut.Get (Prelude.Bit (Prelude.SizeOf (CPUDefines.RegPackets datalength)))))
+
+(ITAp (ITCon GetPut::Get (IKFun IKStar IKStar) (TIstruct (SInterface []) [get])) (ITAp (ITCon Prelude::Bit (IKFun IKNum IKStar) TIabstract) (ITAp (ITAp (ITCon Prelude::TAdd (IKFun IKNum (IKFun IKNum IKNum)) TIabstract) (ITVar datalength)) (ITNum 4))),ITAp (ITCon GetPut::Get (IKFun IKStar IKStar) (TIstruct (SInterface []) [GetPut::get])) (ITAp (ITCon Prelude::Bit (IKFun IKNum IKStar) TIabstract) (ITAp (ITCon Prelude::SizeOf (IKFun IKStar IKNum) TIabstract) (ITAp (ITCon CPUDefines::RegPackets (IKFun IKNum IKStar) (TIstruct SStruct [CPUDefines::data,CPUDefines::register])) (ITVar datalength)))))
+bsc finished

@@ -8,30 +8,41 @@ package CPU;
     import ClientServer::*;
     import Connectable::*;
 
+
+    import CPUDefines::*;
     import InstructionMemory::*;
     import Fetch::*;
     import Exec::*;
     import Bus::*;
 
-    `include <config.bsv>
+    export CPU (..);
+    export mkCPU;
 
-    instance Connectable #(Fetch, Exec);
-        module mkConnection #(Fetch f, Exec e)(Empty);
+    `include <testparams.bsv>
+
+    
+    interface CPU #(numeric type wordlength, numeric type datalength, numeric type busdatalength, numeric type busaddrlength, numeric type granularity);
+        interface Imem #(wordlength) imem;
+        interface BusMaster #(busdatalength, busaddrlength, granularity) bus_master;
+    endinterface
+
+    instance Connectable #(Fetch #(wordlength, datalength), Exec #(datalength, busdatalength, busaddrlength, granularity));
+        module mkConnection #(Fetch #(wordlength, datalength) f , Exec #(datalength, busdatalength, busaddrlength, granularity) e)(Empty);
             mkConnection (f.get_decoded, e.put_decoded);
             mkConnection (e.send_computed_value, f.store_to_reg);
             mkConnection (e.get_branch, f.put_branch);
         endmodule
     endinstance
 
-    instance Connectable #(Imem, Fetch);
-        module mkConnection #(Imem i, Fetch f)(Empty);
+    instance Connectable #(Imem #(wordlength), Fetch #(wordlength, datalength));
+        module mkConnection #(Imem #(wordlength) i, Fetch #(wordlength, datalength) f)(Empty);
             mkConnection (i, f.imem_client);
         endmodule
     endinstance
     
-    instance Connectable #(Exec, BusMaster #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY));
-        module mkConnection #(Exec x,
-                             BusMaster #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) m)
+    instance Connectable #(Exec #(datalength, busdatalength, busaddrlength, granularity), BusMaster #(busdatalength, busaddrlength, granularity));
+        module mkConnection #(Exec #(datalength, busdatalength, busaddrlength, granularity) x,
+                             BusMaster #(busdatalength, busaddrlength, granularity) m)
                              (Empty);
             mkConnection (x.get_to_bus, m.job_send);
             mkConnection (x.put_from_bus, m.job_done);
@@ -39,16 +50,25 @@ package CPU;
     endinstance
 
     
-    interface CPU;
-        interface Imem imem;
-        interface BusMaster #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) bus_master;
-    endinterface
 
-    module mkCPU #(Integer cpu_id, String rom) (CPU);
-        Exec exec <- mkExec;
-        Fetch fetch <- mkFetch;
-        Imem imem_c <- mkImem (rom);
-        BusMaster #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) bus_master_c <- mkBusMaster(cpu_id);
+
+    module mkCPU #(Integer cpu_id, String rom) (CPU #(wordlength, datalength, busdatalength, busaddrlength, granularity))
+
+        provisos (Add# (na, 32, datalength),     // Datalength always >= 32
+                  Add# (nb, 32, busdatalength),  // Busdatalen >= 32
+                  Add# (nc, 16, datalength),
+                  Add# (nf, 16, busdatalength),
+                  Add# (nd, 8,  datalength),
+                  Add# (ne, 8,  busdatalength),
+                  Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)),
+                  Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
+                  Add# (n_, 16, TAdd#(wordlength, datalength)));    // Just to satisfy the compiler
+
+
+        Exec #(datalength, busdatalength, busaddrlength, granularity) exec <- mkExec;
+        Fetch #(wordlength, datalength) fetch <- mkFetch;
+        Imem #(wordlength) imem_c <- mkImem (rom);
+        BusMaster #(busdatalength, busaddrlength, granularity) bus_master_c <- mkBusMaster(cpu_id);
 
 
         mkConnection (imem_c, fetch);
@@ -62,7 +82,7 @@ package CPU;
     module tests(Empty);
         Reg #(Bit #(32)) cntr <- mkReg (0);
 
-        CPU my_core <- mkCPU(1, "../asm/random");
+        CPU #(`WORD_LENGTH, `DATA_LENGTH, `BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) my_core <- mkCPU(1, "../asm/random");
 
         Vector #(1, BusMaster #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY)) master_vec;
         master_vec[0] = my_core.bus_master;

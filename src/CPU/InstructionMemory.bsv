@@ -4,22 +4,22 @@ package InstructionMemory;
     import GetPut::*;
     import ClientServer::*;
 
-    `include <config.bsv>
+    // `include <config.bsv>
     
     /*----------------------------------------------------------------------
                                 Typedefs
     -----------------------------------------------------------------------*/
-    typedef Server #(Bit #(`PC_SIZE), Bit #(`WORD_LENGTH)) Imem;
+    typedef Server #(Bit #(wordlength), Bit #(wordlength)) Imem #(numeric type wordlength);
 
     /*----------------------------------------------------------------------
                             Module Declarations
     -----------------------------------------------------------------------*/
 
-    module mkImem #(String rom) (Imem);
-        RegFile #(Bit #(`PC_SIZE), Bit #(`WORD_LENGTH)) memory  <- mkRegFileFullLoad(rom);
-        RWire   #(Bit #(`WORD_LENGTH))                  fast    <- mkRWire();
+    module mkImem #(String rom) (Imem #(wordlength));
+        RegFile #(Bit #(wordlength), Bit #(wordlength)) memory  <- mkRegFileFullLoad(rom);
+        RWire   #(Bit #(wordlength))                  fast    <- mkRWire();
 
-        function Action put_stuff (Bit #(`PC_SIZE) addr);
+        function Action put_stuff (Bit #(wordlength) addr);
             action
                 fast.wset(memory.sub(addr));
             endaction

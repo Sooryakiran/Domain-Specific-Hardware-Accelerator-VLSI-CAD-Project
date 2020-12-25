@@ -4,38 +4,38 @@ package Fetch;
     import GetPut::*;
     import Vector::*;
     import ClientServer::*;
+    import CPUDefines::*;
 
-    `include <config.bsv>
-
+ 
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
 
-    interface Registers;
-        method Bit #(`DATA_LENGTH)  load  (Regname name);
-        method Action               store (Bit #(`DATA_LENGTH) data, Regname name);
+    interface Registers #(numeric type datalength);
+        method Bit #(datalength)  load  (Regname name);
+        method Action               store (Bit #(datalength) data, Regname name);
     endinterface : Registers
 
-    interface Fetch;
-        interface Put #(Bit #(SizeOf #(RegPackets)))                store_to_reg;
-        interface Put #(Bit #(`DATA_LENGTH))                        put_branch;
-        interface Client #(Bit #(`PC_SIZE), Bit #(`WORD_LENGTH))    imem_client; 
-        interface Get #(Bit #(`DecodedInstructionSize))             get_decoded; 
+    interface Fetch #(numeric type wordlength, numeric type datalength);
+        interface Put #(Bit #(SizeRegPackets #(datalength)))                store_to_reg;
+        interface Put #(Bit #(datalength))                        put_branch;
+        interface Client #(Bit #(wordlength), Bit #(wordlength))    imem_client; 
+        interface Get #(Bit #(DecodedInstructionSize #(datalength)))             get_decoded; 
     endinterface
 
     /*----------------------------------------------------------------------
                             Module Declarations
     -----------------------------------------------------------------------*/
 
-    module mkRegisters (Registers);
-        Vector #(8, Reg #(Bit #(`DATA_LENGTH))) regs <- replicateM(mkRegU);
+    module mkRegisters (Registers #(datalength));
+        Vector #(8, Reg #(Bit #(datalength))) regs <- replicateM(mkRegU);
 
-        method Bit #(`DATA_LENGTH) load(Regname name);
+        method Bit #(datalength) load(Regname name);
             let x = pack(name);
             return ((x<8)? regs[x] : 0);
         endmethod
 
-        method Action store (Bit #(`DATA_LENGTH) data, Regname name);
+        method Action store (Bit #(datalength) data, Regname name);
             action
                 let x = pack(name);
                 if (x < 8)
@@ -47,40 +47,42 @@ package Fetch;
     endmodule : mkRegisters
 
 
-    module mkFetch (Fetch);
-        FIFOF #(Instruction) instructions   <- mkBypassFIFOF;
-        FIFOF #(DecodedInstruction) decoded <- mkPipelineFIFOF;
+    module mkFetch (Fetch #(wordlength, datalength))
+        provisos (Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
+                  Add# (n_, 16, TAdd#(wordlength, datalength)));
+        FIFOF #(Instruction #(wordlength)) instructions   <- mkBypassFIFOF;
+        FIFOF #(DecodedInstruction #(datalength)) decoded <- mkPipelineFIFOF;
 
-        Reg #(Bit #(`PC_SIZE)) pc           <- mkReg(0);
+        Reg #(Bit #(wordlength)) pc           <- mkReg(0);
         Reg #(Bit #(32)) debug_clk          <- mkReg(0);
         Reg #(Bit #(1)) wait_for_next_half  <- mkReg(0);
         Reg #(Regname) waiting_address      <- mkRegU;
         Reg #(Regname) future               <- mkReg(NO);
-        Registers regs                      <- mkRegisters;
+        Registers #(datalength) regs                      <- mkRegisters;
      
         PulseWire got_instruction               <- mkPulseWire();
         PulseWire wait_instruction              <- mkPulseWire();
 
-        RWire #(RegPackets) store_from_exec     <- mkRWire();
-        RWire #(RegPackets) store_from_fetch    <- mkRWire();
-        RWire #(Bit #(`DATA_LENGTH)) branch     <- mkRWire();
+        RWire #(RegPackets #(datalength)) store_from_exec     <- mkRWire();
+        RWire #(RegPackets #(datalength)) store_from_fetch    <- mkRWire();
+        RWire #(Bit #(datalength)) branch     <- mkRWire();
         
-        function Bit #(`DATA_LENGTH) check_load (Regname r) ;
+        function Bit #(datalength) check_load (Regname r) ;
             if (r == NO) return 0;
             else return regs.load(r);
         endfunction
         
-        function Action store_back_to_regs (Bit #(SizeOf #(RegPackets)) new_stuff);
+        function Action store_back_to_regs (Bit #(SizeRegPackets #(datalength)) new_stuff);
             action
-                RegPackets x = unpack(new_stuff);
+                RegPackets #(datalength) x = unpack(new_stuff);
                 store_from_exec.wset(x);
             endaction
         endfunction
 
-        function Action put_instructions (Bit #(`WORD_LENGTH) new_stuff);
+        function Action put_instructions (Bit #(wordlength) new_stuff);
             action
-                Instruction ins = unpack(new_stuff);
-                Instruction nop = Instruction {
+                Instruction #(wordlength) ins = unpack(new_stuff);
+                Instruction #(wordlength) nop = Instruction {
                                     code : NOP,
                                     src1 : NO,
                                     src2 : NO,
@@ -102,7 +104,7 @@ package Fetch;
             endaction
         endfunction
 
-        function ActionValue #(Bit #(`DecodedInstructionSize)) send_decoded;
+        function ActionValue #(Bit #(DecodedInstructionSize #(datalength))) send_decoded;
             actionvalue
                 let x = decoded.first();
                 decoded.deq();
@@ -110,17 +112,17 @@ package Fetch;
             endactionvalue
         endfunction
 
-        `ifndef SMALL_WIDTH
+        // `ifndef SMALL_WIDTH
         (* descending_urgency = "master_heavy, store_request" *)
         (* preempts           = "flush_and_branch, master_heavy" *)
-        rule master_heavy (`WORD_LENGTH >= 64 );
+        rule master_heavy (valueOf(wordlength) >= 64 );
             let x = instructions.first();
             $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             
             if (x.code == ASG_8 || x.code == ASG_16 || x.code == ASG_32)
             begin
-                HeavyData heavy = unpack(pack(x));
-                RegPackets current_store = RegPackets {
+                HeavyData #(wordlength, datalength) heavy = unpack(pack(x));
+                RegPackets #(datalength) current_store = RegPackets {
                                                 data : heavy.data,
                                                 register : x.src1};
                 store_from_fetch.wset(current_store);
@@ -128,7 +130,7 @@ package Fetch;
             end
             else
             begin
-                DecodedInstruction current = DecodedInstruction {
+                DecodedInstruction #(datalength) current = DecodedInstruction {
                                             code : x.code,
                                             src1 : check_load(x.src1),
                                             src2 : check_load(x.src2),  
@@ -138,25 +140,27 @@ package Fetch;
             end           
             instructions.deq();
         endrule
-        `endif
+        // `endif
 
-        `ifndef HEAVY_WIDTH
+        // `ifndef HEAVY_WIDTH
         (* descending_urgency = "slave_32_bit, master_32_bit, store_request" *)
         (* preempts           = "flush_and_branch, (master_32_bit, increment_pc)" *)
-        rule slave_32_bit (`WORD_LENGTH < 64 && wait_for_next_half == 1);
+        rule slave_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 1);
             
             let x = instructions.first();
 
-            RegPackets current_store = RegPackets {
-                            data     : extend(pack(x)),
-                            register : waiting_address};
+            Bit #(TAdd #(wordlength, datalength)) temp_data = extend(pack(x));
+
+            RegPackets #(datalength) current_store = RegPackets {
+                                                        data     : truncate(temp_data),
+                                                        register : waiting_address};
 
             store_from_fetch.wset(current_store);
             wait_for_next_half <= 0;
             instructions.deq();
         endrule
 
-        rule master_32_bit (`WORD_LENGTH < 64 && wait_for_next_half == 0 );
+        rule master_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 0 );
             let x = instructions.first();
             $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             if(x.code == ASG_32)
@@ -168,14 +172,16 @@ package Fetch;
             begin
                 if (x.code == ASG_8 || x.code == ASG_16)
                 begin
-                    RegPackets current_store = RegPackets {
-                                data        : extend(pack(x)[22:7]),
+
+                    Bit #(TAdd #(wordlength, datalength)) temp_data = extend(pack(x)[22:7]);
+                    RegPackets #(datalength) current_store = RegPackets {
+                                data        : truncate(temp_data),
                                 register    : x.src1};
                     store_from_fetch.wset(current_store);
                 end
                 else
                 begin
-                    DecodedInstruction current = DecodedInstruction {
+                    DecodedInstruction #(datalength) current = DecodedInstruction {
                                                 code : x.code,
                                                 src1 : check_load(x.src1),
                                                 src2 : check_load(x.src2),  
@@ -186,7 +192,7 @@ package Fetch;
             end
             instructions.deq();
         endrule
-        `endif
+        // `endif
         
 
         rule store_request;
@@ -221,7 +227,9 @@ package Fetch;
         rule flush_and_branch (branch.wget() matches tagged Valid .branch_id);
             instructions.clear();
             decoded.clear();
-            pc <= branch_id;
+
+            Bit #(TAdd #(datalength, wordlength)) temp_id = extend(branch_id);
+            pc <= truncate(temp_id);
 
             $display ("Branch recieved ", branch_id);
         endrule
