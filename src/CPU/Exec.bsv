@@ -253,10 +253,11 @@ package Exec;
             action
             
             // $display ("Load, ", p);
+            Bit #(TAdd #(TMax#(`DATA_LENGTH, `ADDR_LENGTH), 1)) address = extend(addr);
             Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) x = Chunk {
                                                                         control : Read,
                                                                         data : ?,
-                                                                        addr : addr,
+                                                                        addr : truncate(address),
                                                                         present : p
                                                                     };
             bus_out.enq(x);
@@ -264,10 +265,29 @@ package Exec;
             wait_reg <= dst;
             endaction
         endfunction
+
+        function store (Bit #(`DATA_LENGTH) data, Bit #(`DATA_LENGTH) addr, Regname dst, Bit #(PresentSize #(`BUS_DATA_LEN, `GRANULARITY)) p);
+            action
+
+            
+            Bit #(TAdd #(TMax#(`DATA_LENGTH, `ADDR_LENGTH), 1)) address = extend(addr);
+            Bit #(TAdd #(TMax#(`DATA_LENGTH, `BUS_DATA_LEN), 1)) data_b = extend(data);
+
+            Chunk #(`BUS_DATA_LEN, `ADDR_LENGTH, `GRANULARITY) x = Chunk {
+                                                                        control : Write,
+                                                                        data : truncate(data_b),
+                                                                        addr : truncate(address),
+                                                                        present : p
+                                                                    };
+            bus_out.enq(x);
+            incoming.deq();
+            // $display ("STORAGE ADDRESS ", addr);
+            endaction
+        endfunction
         
         rule exec_master (!wait_load && !wait_store);
             DecodedInstruction x = unpack(incoming.first);
-
+            // $display (fshow(x));
             if (x.code == NOP)      incoming.deq();
             if (x.code == MOV)      mov     (x.src1, x.dst);
             if (x.code == ADD_I8)   addi8   (x.src1, x.src2, x.dst);
@@ -284,13 +304,15 @@ package Exec;
             if (x.code == LOAD_8)   load    (x.src1, x.dst, 1);
             if (x.code == LOAD_16)  load    (x.src1, x.dst, 2);
             if (x.code == LOAD_32)  load    (x.src1, x.dst, 4);
+            if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
+            if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
             if (x.code == STORE_32) incoming.deq();
     
         endrule
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if(debug_clk>100) $finish();
+            if(debug_clk>150) $finish();
         endrule 
 
         interface Get get_branch = toGet(branch);

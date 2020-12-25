@@ -77,13 +77,13 @@ package CPU;
         mkConnection (master_vec, bus);
         mkConnection (my_slaves, bus);
 
-        Chunk #(64, 32, 8) blah = Chunk {
+        Chunk #(64, 20, 8) blah = Chunk {
                                     control : Response,
                                     data : 103,
                                     addr : 101,
                                     present : 1};
 
-        Chunk #(64, 32, 8) blah2 = Chunk {
+        Chunk #(64, 20, 8) blah2 = Chunk {
                                         control : Response,
                                         data : 276,
                                         addr : 101,
@@ -95,10 +95,10 @@ package CPU;
         endrule        
         
         
-        rule yaay2 (cntr == 8);
+        rule yaay2 (cntr == 16);
         // $display ("Changed");
-            let x = my_slaves[1].jobs_recieve.get();
-            my_slaves[1].jobs_done.put(blah2);
+            let x = my_slaves[0].jobs_recieve.get();
+            my_slaves[0].jobs_done.put(blah2);
         endrule          
 
 

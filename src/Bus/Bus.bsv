@@ -8,7 +8,6 @@ package Bus;
     import FIFOF::*;
     import SpecialFIFOs::*;
 
-
     /*----------------------------------------------------------------------
                                 Exports
     -----------------------------------------------------------------------*/
@@ -175,13 +174,26 @@ package Bus;
             return (lower_bound <= address && upper_bound >= address);
         endfunction
 
-        rule check_for_requests (readings.wget() matches tagged Valid .reading_val);
-            
+        rule check_for_requests (!busy);
+            // $display (id, " READINGS ", fshow(busy));
+            if (readings.wget() matches tagged Valid .reading_val)
             if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
             begin
-                // $display (id, " got job ", fshow(reading_val));
+                $display (id, " got job ", fshow(reading_val));
                 busy <= True;
                 jobs.enq(reading_val);
+            end
+        endrule
+
+
+        rule debug;
+            if (readings.wget() matches tagged Valid .reading_val)
+            begin
+                if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
+                begin
+                    $display (id, " got job ", fshow(reading_val));
+                    $display (id, fshow(jobs.first()));
+                end
             end
         endrule
 
@@ -297,12 +309,13 @@ package Bus;
         rule update_states;
             if (bus_state_inc.wget matches tagged Valid .x) 
             begin
-                // $display (debug_clk, " Masters win");
+                $display (debug_clk, " Masters win");
+                // $display (fshow(x));
                 bus_state <= x;
             end
             else if (bus_state_slaves.wget matches tagged Valid .y)
             begin
-                // $display (debug_clk, " Slaves win");
+                $display (debug_clk, " Slaves win");
                 // $display (fshow(y));
                 bus_state <= y;
 
