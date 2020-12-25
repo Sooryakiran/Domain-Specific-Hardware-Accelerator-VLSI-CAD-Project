@@ -210,6 +210,7 @@ package Fetch;
         endrule
 
         rule debug_clk_upd;
+            // $display ("R1 ", regs.load(R1));
             debug_clk <= debug_clk + 1;
         endrule
     

@@ -1,10 +1,13 @@
 `ifndef CPU_CONF
     `define CPU_CONF
     `define WORD_LENGTH 32
-    `define DATA_LENGTH 32
-    
     `define SMALL_WIDTH     // Comment this line for >32 bits. Explaination: ASG_32 instruction has 64 bit length even for 32 bit systems. :(
 
+    `define DATA_LENGTH 32
+    `define BUS_DATA_LEN 64
+    `define ADDR_LENGTH 20
+    `define GRANULARITY 8 // Lowest addressible unit size = 1 Byte in RAM
+    
 /*-------------------------------------------------------------------------------
                         DONOT MODIFY ANYTHING BELOW THIS LINE
 -------------------------------------------------------------------------------*/
@@ -79,7 +82,7 @@
         Bit #(`DATA_LENGTH) src2;       // DATALEN
         Bit #(`DATA_LENGTH) aux;        // DATALEN
         Regname dst;                    // 4 bits
-    }  DecodedInstruction deriving(Bits); // 9 + e TMul(`DATALEN, 3)
+    }  DecodedInstruction deriving(Bits, FShow); // 9 + e TMul(`DATALEN, 3)
 
     `define DecodedInstructionSize TAdd #(TMul #(`DATA_LENGTH, 3), 9)
 
