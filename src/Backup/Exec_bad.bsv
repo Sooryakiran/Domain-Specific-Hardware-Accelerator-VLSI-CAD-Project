@@ -7,16 +7,14 @@ package Exec;
     import FloatingPoint::*;
     import Bus::*;
     import CPUDefines::*;
+    // `include <config.bsv>
 
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
-    interface Exec #(numeric type datalength,
-                     numeric type busdatalength,
-                     numeric type busaddrlength,
-                     numeric type granularity);
+    interface Exec #(numeric type datalength, numeric type busdatalength, numeric type busaddrlength, numeric type granularity);
         interface Put #(Bit #(DecodedInstructionSize #(datalength))) put_decoded;  
-        interface Get #(Bit #(SizeRegPackets #(datalength))) send_computed_value;
+        interface Get #(Bit #(SizeOf #(RegPackets #(datalength)))) send_computed_value;
         interface Get #(Bit #(datalength)) get_branch;
 
         interface Put #(Chunk #(busdatalength, busaddrlength, granularity)) put_from_bus;
@@ -33,18 +31,16 @@ package Exec;
                   Add# (nc, 16, datalength),
                   Add# (nf, 16, busdatalength),
                   Add# (nd, 8,  datalength),
-                  Add# (ne, 8,  busdatalength),
-                  Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)));    // Just to satisfy the compiler
-
+                  Add# (ne, 8,  busdatalength));    // Just to satisfy the compiler
         FIFOF #(Bit #(DecodedInstructionSize#(datalength))) incoming    <- mkBypassFIFOF;
-        FIFOF #(RegPackets #(datalength))                   out_to_regs <- mkBypassFIFOF;
-        RWire #(Bit #(datalength))                          branch      <- mkRWire();
-        Reg   #(Bit #(32))                                  debug_clk   <- mkReg(0);
-        Reg   #(Bool)                                       wait_load   <- mkReg(False);
-        Reg   #(Bool)                                       wait_store  <- mkReg(False);
-        Reg   #(Regname)                                    wait_reg    <- mkReg(NO);
+        FIFOF #(RegPackets #(datalength))                     out_to_regs <- mkBypassFIFOF;
+        RWire #(Bit #(datalength))            branch      <- mkRWire();
+        Reg   #(Bit #(32))                      debug_clk   <- mkReg(0);
+        Reg   #(Bool)                           wait_load   <- mkReg(False);
+        Reg   #(Bool)                           wait_store  <- mkReg(False);
+        Reg   #(Regname)                        wait_reg    <- mkReg(NO);
         FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_out <- mkBypassFIFOF;
-        FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_in  <- mkBypassFIFOF;
+        FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_in <- mkBypassFIFOF;
 
 
         rule load_from_bus (wait_load == True && wait_reg != NO);
@@ -86,7 +82,7 @@ package Exec;
                 out_to_regs.enq(packet);
             end
 
-            $display ("CPU LOAD ", fshow(x));
+            $display (fshow(x));
 
             wait_load <= False;
             incoming.deq();
@@ -273,10 +269,8 @@ package Exec;
         function Action load (Bit #(datalength) addr, Regname dst, Bit #(PresentSize #(busdatalength, granularity)) p);
             action
             
-            // Bit #(64) address = extend(addr);
             // $display ("Load, ", p);
             Bit #(TAdd #(datalength, busaddrlength)) address = extend(addr);
-            // Bit #(TAdd#(TMax#(datalength, busaddrlength), 1)) address = extend(addr);
             Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                         control : Read,
                                                                         data : ?,
@@ -304,8 +298,7 @@ package Exec;
                                                                     };
             bus_out.enq(x);
             incoming.deq();
-
-            $display ("CPU STORE ", fshow(x));
+            // $display ("STORAGE ADDRESS ", addr);
             endaction
         endfunction
         
@@ -330,7 +323,7 @@ package Exec;
             if (x.code == LOAD_32)  load    (x.src1, x.dst, 4);
             if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
-            if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
+            if (x.code == STORE_32) incoming.deq();
     
         endrule
 
