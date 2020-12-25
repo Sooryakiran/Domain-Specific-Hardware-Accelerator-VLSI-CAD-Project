@@ -107,7 +107,7 @@ package DRAMSlave;
             let x = requests.first(); requests.deq();
             if (x.control == Read)
             begin
-                // $display ("Read Req");
+                $display ("DRAM LOAD");
 
                 Bit #(datasize) wires[num_ports + 1];
                 wires[0] = 0;
@@ -125,6 +125,8 @@ package DRAMSlave;
                         wires[i+1] = (wires[i]) +
                                      (truncate(temp_wire) << 
                                       num_block_size * fromInteger(i));
+                        
+                        
                     end
                     else 
                     begin
@@ -132,22 +134,23 @@ package DRAMSlave;
                     end
 
                 end
-                // $display("%b", wires[num_ports]);
+                $display("DRAM ",  wires[num_ports]);
                 
                 Chunk #(datasize,
                         addrsize, 
                         blocksize) write_done = Chunk {
                                             control : Response,
-                                            data    : ?,
+                                            data    : wires[num_ports],
                                             addr    : ?,
-                                            present : ?};
+                                            present : x.present};
                 responses.enq(write_done);
             end
             else if (x.control == Write)
             begin
-                // $display ("Write Req");
+                $display ("DRAM STORE");
                 for (Integer i = 0; i < num_ports; i = i + 1)
                 begin
+                    
                     if (fromInteger(i) < x.present)
                     begin
                         Bit #(addrsize) address = fromInteger(i) +
@@ -156,6 +159,7 @@ package DRAMSlave;
                         
                         Bit #(blocksize) curr_data = unpack(x.data[fromInteger(i+1) * fromInteger(num_block_size) - 1 : fromInteger(i) * fromInteger(num_block_size)]);
                         data[i][address] <= unpack(curr_data);
+                        $display(i, address, curr_data);
 
                     end
                 end
