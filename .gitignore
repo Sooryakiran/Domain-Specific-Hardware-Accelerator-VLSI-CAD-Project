@@ -4,4 +4,5 @@
 *.ba
 *.so
 *.o
+*.odt#
 out
