@@ -103,11 +103,15 @@ package DRAMSlave;
         Reg #(Bit #(datasize)) temporary_data <- mkRegU;
         Reg #(Chunk #(datasize, addrsize, blocksize)) read_chunk <- mkRegU;
         
+        // rule debug;
+        //     $display ("--", data[24][0]);
+        // endrule
+
         rule check_requests (!(reading || writing));
             let x = requests.first(); requests.deq();
             if (x.control == Read)
             begin
-                $display ("DRAM LOAD");
+                // $display ("DRAM LOAD");
 
                 Bit #(datasize) wires[num_ports + 1];
                 wires[0] = 0;
@@ -121,12 +125,12 @@ package DRAMSlave;
                                                   fromInteger(num_offset);
 
                         Bit #(TAdd #(blocksize,
-                              datasize)) temp_wire = extend(pack(data[i][address]));
+                              datasize)) temp_wire = extend(pack(data[address][i]));
                         wires[i+1] = (wires[i]) +
                                      (truncate(temp_wire) << 
                                       num_block_size * fromInteger(i));
                         
-                        
+                        // $display(i, " HI ",  address, " ",  data[address][i]);
                     end
                     else 
                     begin
@@ -134,7 +138,7 @@ package DRAMSlave;
                     end
 
                 end
-                $display("DRAM ",  wires[num_ports]);
+                // $display("DRAM ",  wires[num_ports]);
                 
                 Chunk #(datasize,
                         addrsize, 
@@ -147,7 +151,7 @@ package DRAMSlave;
             end
             else if (x.control == Write)
             begin
-                $display ("DRAM STORE");
+                // $display ("DRAM STORE");
                 for (Integer i = 0; i < num_ports; i = i + 1)
                 begin
                     
@@ -158,8 +162,8 @@ package DRAMSlave;
                                                   fromInteger(num_offset);
                         
                         Bit #(blocksize) curr_data = unpack(x.data[fromInteger(i+1) * fromInteger(num_block_size) - 1 : fromInteger(i) * fromInteger(num_block_size)]);
-                        data[i][address] <= unpack(curr_data);
-                        $display(i, address, curr_data);
+                        data[address][i] <= unpack(curr_data);
+                        // $display(i, address, curr_data);
 
                     end
                 end
