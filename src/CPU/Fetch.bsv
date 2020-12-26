@@ -12,15 +12,15 @@ package Fetch;
     -----------------------------------------------------------------------*/
 
     interface Registers #(numeric type datalength);
-        method Bit #(datalength)  load  (Regname name);
-        method Action               store (Bit #(datalength) data, Regname name);
+        method Bit #(datalength) load  (Regname name);
+        method Action            store (Bit #(datalength) data, Regname name);
     endinterface : Registers
 
     interface Fetch #(numeric type wordlength, numeric type datalength);
-        interface Put #(Bit #(SizeRegPackets #(datalength)))                store_to_reg;
-        interface Put #(Bit #(datalength))                        put_branch;
-        interface Client #(Bit #(wordlength), Bit #(wordlength))    imem_client; 
-        interface Get #(Bit #(DecodedInstructionSize #(datalength)))             get_decoded; 
+        interface Put    #(Bit #(SizeRegPackets #(datalength)))         store_to_reg;
+        interface Put    #(Bit #(datalength))                           put_branch;
+        interface Client #(Bit #(wordlength), Bit #(wordlength))        imem_client; 
+        interface Get    #(Bit #(DecodedInstructionSize #(datalength))) get_decoded; 
     endinterface
 
     /*----------------------------------------------------------------------
@@ -53,19 +53,18 @@ package Fetch;
         FIFOF #(Instruction #(wordlength)) instructions   <- mkBypassFIFOF;
         FIFOF #(DecodedInstruction #(datalength)) decoded <- mkPipelineFIFOF;
 
-        Reg #(Bit #(wordlength)) pc           <- mkReg(0);
+        Reg #(Bit #(wordlength)) pc         <- mkReg(0);
         Reg #(Bit #(32)) debug_clk          <- mkReg(0);
         Reg #(Bit #(1)) wait_for_next_half  <- mkReg(0);
         Reg #(Regname) waiting_address      <- mkRegU;
         Reg #(Regname) future               <- mkReg(NO);
-        Registers #(datalength) regs                      <- mkRegisters;
-     
-        PulseWire got_instruction               <- mkPulseWire();
-        PulseWire wait_instruction              <- mkPulseWire();
+        Registers #(datalength) regs        <- mkRegisters;
+        PulseWire got_instruction           <- mkPulseWire();
+        PulseWire wait_instruction          <- mkPulseWire();
 
         RWire #(RegPackets #(datalength)) store_from_exec     <- mkRWire();
         RWire #(RegPackets #(datalength)) store_from_fetch    <- mkRWire();
-        RWire #(Bit #(datalength)) branch     <- mkRWire();
+        RWire #(Bit #(datalength)) branch                     <- mkRWire();
         
         function Bit #(datalength) check_load (Regname r) ;
             if (r == NO) return 0;
@@ -117,7 +116,7 @@ package Fetch;
         (* preempts           = "flush_and_branch, master_heavy" *)
         rule master_heavy (valueOf(wordlength) >= 64 );
             let x = instructions.first();
-            $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
+            // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             
             if (x.code == ASG_8 || x.code == ASG_16 || x.code == ASG_32)
             begin
@@ -127,6 +126,14 @@ package Fetch;
                                                 register : x.src1};
                 store_from_fetch.wset(current_store);
                 
+                DecodedInstruction #(datalength) current = DecodedInstruction {
+                                                            code : NOP,
+                                                            src1 : ?,
+                                                            src2 : ?,  
+                                                            aux  : ?,
+                                                            dst  : ?};
+
+                decoded.enq(current);
             end
             else
             begin
@@ -158,15 +165,26 @@ package Fetch;
             store_from_fetch.wset(current_store);
             wait_for_next_half <= 0;
             instructions.deq();
+
+            DecodedInstruction #(datalength) current = DecodedInstruction {
+                    code : NOP,
+                    src1 : ?,
+                    src2 : ?,  
+                    aux  : ?,
+                    dst  : ?};
+
+            decoded.enq(current);
         endrule
 
         rule master_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 0 );
             let x = instructions.first();
-            $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
+            // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             if(x.code == ASG_32)
             begin
                 wait_for_next_half  <= 1;
                 waiting_address     <= x.src1;
+
+                
             end
             else
             begin
@@ -178,6 +196,15 @@ package Fetch;
                                 data        : truncate(temp_data),
                                 register    : x.src1};
                     store_from_fetch.wset(current_store);
+
+                    DecodedInstruction #(datalength) current = DecodedInstruction {
+                                                code : NOP,
+                                                src1 : ?,
+                                                src2 : ?,  
+                                                aux  : ?,
+                                                dst  : ?};
+
+                    decoded.enq(current);
                 end
                 else
                 begin
@@ -188,6 +215,9 @@ package Fetch;
                                                 aux  : check_load(x.aux),
                                                 dst  : x.dst};   
                     decoded.enq(current);
+                    // $display ("TEMP2 ", check_load(R3), ",", check_load(R4));
+                    // $display ("TEMP1 ", x.src1, ",", x.src2);
+                    
                 end
             end
             instructions.deq();
@@ -231,7 +261,7 @@ package Fetch;
             Bit #(TAdd #(datalength, wordlength)) temp_id = extend(branch_id);
             pc <= truncate(temp_id);
 
-            $display ("Branch recieved ", branch_id);
+            // $display ("Branch recieved ", branch_id);
         endrule
 
         interface Put store_to_reg  = toPut(store_back_to_regs());

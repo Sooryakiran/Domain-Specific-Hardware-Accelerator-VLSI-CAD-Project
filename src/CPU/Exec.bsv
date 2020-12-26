@@ -16,8 +16,8 @@ package Exec;
                      numeric type busaddrlength,
                      numeric type granularity);
         interface Put #(Bit #(DecodedInstructionSize #(datalength))) put_decoded;  
-        interface Get #(Bit #(SizeRegPackets #(datalength))) send_computed_value;
-        interface Get #(Bit #(datalength)) get_branch;
+        interface Get #(Bit #(SizeRegPackets #(datalength)))         send_computed_value;
+        interface Get #(Bit #(datalength))                           get_branch;
 
         interface Put #(Chunk #(busdatalength, busaddrlength, granularity)) put_from_bus;
         interface Get #(Chunk #(busdatalength, busaddrlength, granularity)) get_to_bus;
@@ -86,7 +86,7 @@ package Exec;
                 out_to_regs.enq(packet);
             end
 
-            $display ("CPU LOAD ", fshow(x));
+            // $display ("CPU LOADED ", fshow(x));
 
             wait_load <= False;
             incoming.deq();
@@ -149,6 +149,7 @@ package Exec;
                                         data        : pack(out),
                                         register    : name
                                     };
+                // $display ("TEMP ", x1, ",", x2 );
                 out_to_regs.enq(packet);
                 incoming.deq();
             endaction
@@ -305,13 +306,13 @@ package Exec;
             bus_out.enq(x);
             incoming.deq();
 
-            $display ("CPU STORE ", fshow(x));
+            // $display ("CPU STORE ", fshow(x));
             endaction
         endfunction
         
         rule exec_master (!wait_load && !wait_store);
             DecodedInstruction #(datalength) x = unpack(incoming.first);
-            // $display (fshow(x));
+            // $display (debug_clk, ":", fshow(x));
             if (x.code == NOP)      incoming.deq();
             if (x.code == MOV)      mov     (x.src1, x.dst);
             if (x.code == ADD_I8)   addi8   (x.src1, x.src2, x.dst);
@@ -336,14 +337,13 @@ package Exec;
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if(debug_clk>150) $finish();
+            if(debug_clk>50) $finish();
         endrule 
 
-        interface Get get_branch = toGet(branch);
-        interface Put put_decoded = toPut(incoming);
-        interface Get send_computed_value = toGet(send_back_to_regs()); // sayooj is
-    
-        interface Put put_from_bus = toPut(bus_in);
-        interface Get get_to_bus = toGet(bus_out);
+        interface Get get_branch            = toGet(branch);
+        interface Put put_decoded           = toPut(incoming);
+        interface Get send_computed_value   = toGet(send_back_to_regs()); // sayooj is
+        interface Put put_from_bus          = toPut(bus_in);
+        interface Get get_to_bus            = toGet(bus_out);
     endmodule
 endpackage : Exec

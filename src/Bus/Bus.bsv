@@ -178,7 +178,7 @@ package Bus;
             // $display (id, " READINGS ", fshow(busy));
             if (readings.wget() matches tagged Valid .reading_val)
             begin
-                // $display (reading_val.addr, lower_bound, upper_bound);
+                // $display (id, fshow(reading_val));
                 if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
                 begin
                     // $display (id, " got job ", fshow(reading_val));
@@ -187,23 +187,6 @@ package Bus;
                 end
             end
         endrule
-
-
-        // rule debug_2;
-        //     let x = jobs.first();
-        //     $display ("Job left", x);
-        // endrule
-        
-        // rule debug;
-        //     if (readings.wget() matches tagged Valid .reading_val)
-        //     begin
-        //         if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
-        //         begin
-        //             $display (id, " got job ", fshow(reading_val));
-        //             $display (id, fshow(jobs.first()));
-        //         end
-        //     end
-        // endrule
 
         rule job_done (busy);
             let x = done.first();
@@ -240,10 +223,6 @@ package Bus;
         rule need_bus_update (busy == False);
             need_bus <= buff_to_write.notEmpty();
         endrule
-
-        // rule debug (need_bus == True);
-        //     $display (id, " Need bus? A: ", need_bus);
-        // endrule
 
         rule get_response (busy);
             if(to_read.wget() matches tagged Valid .readings)
