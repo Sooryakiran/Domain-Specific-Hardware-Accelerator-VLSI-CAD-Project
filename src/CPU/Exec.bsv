@@ -16,7 +16,14 @@ package Exec;
                      numeric type busaddrlength,
                      numeric type granularity);
         interface Put #(Bit #(DecodedInstructionSize #(datalength))) put_decoded;  
+        
+
+        // Error 
+        // interface Get #(Bit #(SizeOf #(RegPackets #(datalength))))         send_computed_value;
+        
+        // Workaround
         interface Get #(Bit #(SizeRegPackets #(datalength)))         send_computed_value;
+        
         interface Get #(Bit #(datalength))                           get_branch;
 
         interface Put #(Chunk #(busdatalength, busaddrlength, granularity)) put_from_bus;
