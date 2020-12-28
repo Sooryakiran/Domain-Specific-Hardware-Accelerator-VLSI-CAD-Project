@@ -32,7 +32,7 @@ package Bus;
     typedef struct {ControlSignal control;
                     Bit #(datasize) data;
                     Bit #(addrsize) addr;
-                    Bit #(TLog #(TDiv #(datasize, granularity))) present;}
+                    Bit #(TLog #(TAdd #(TDiv #(datasize, granularity), 1))) present;}
 
                     Chunk #(numeric type datasize,
                             numeric type addrsize,
@@ -50,7 +50,7 @@ package Bus;
                              numeric type addrsize,
                              numeric type granularity);
 
-    typedef TLog #(TDiv #(datasize, granularity)) 
+    typedef TLog #(TAdd #(TDiv #(datasize, granularity), 1)) 
                   PresentSize #(numeric type datasize,
                                 numeric type granularity);
 

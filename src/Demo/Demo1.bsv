@@ -9,7 +9,7 @@ package Demo1;
 
     `define WORD_LENGTH 64
     `define DATA_LENGTH 32
-    `define BUS_DATA_LEN 128
+    `define BUS_DATA_LEN 32
     `define ADDR_LENGTH 20
 
     `define GRANULARITY 8   // Smallest addressible unit
