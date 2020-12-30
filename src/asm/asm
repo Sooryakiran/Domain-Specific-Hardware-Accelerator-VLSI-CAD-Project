@@ -145,11 +145,11 @@ def store(line):
 
 def vecneg(line):
     tokens = line.split()
-    return traditional(tokens[0], tokens[1], "NO",  tokens[2], tokens[3])
+    return traditional(tokens[0], tokens[1], tokens[2], tokens[3], "NO")
 
 def vecmin(line):
     tokens = line.split()
-    return traditional(tokens[0], tokens[1], "NO",  tokens[2], tokens[3])
+    return traditional(tokens[0], tokens[1], tokens[2], tokens[3], "NO")
 
 def main(file_name):
     # file_name = sys.argv[1]

@@ -29,30 +29,20 @@ package Bus;
     
     typedef enum {Response, Read, Write} ControlSignal deriving (Bits, Eq, FShow);
 
+    typedef TLog #(TAdd #(TDiv #(datasize, granularity), 1)) 
+    PresentSize #(numeric type datasize,
+                  numeric type granularity);
+
+
     typedef struct {ControlSignal control;
                     Bit #(datasize) data;
                     Bit #(addrsize) addr;
-                    Bit #(TLog #(TDiv #(datasize, granularity))) present;}
+                    Bit #(PresentSize #(datasize, granularity)) present;}
 
                     Chunk #(numeric type datasize,
                             numeric type addrsize,
                             numeric type granularity) deriving (Bits, FShow);
 
-    
-    typedef struct {Bit #(datasize) data;
-                    Bit #(TLog #(TDiv #(datasize, granularity))) present;}
-                    DataChunk #(numeric type datasize,
-                                numeric type granularity) deriving (Bits, FShow);
-
-    typedef TAdd#(SizeOf #(ControlSignal),
-                 TAdd#(datasize, TAdd#(addrsize, TLog#(TDiv#(datasize, granularity)))))
-                 StateSize #(numeric type datasize,
-                             numeric type addrsize,
-                             numeric type granularity);
-
-    typedef TLog #(TDiv #(datasize, granularity)) 
-                  PresentSize #(numeric type datasize,
-                                numeric type granularity);
 
     /*----------------------------------------------------------------------
                                 Interfaces
@@ -227,6 +217,7 @@ package Bus;
         rule get_response (busy);
             if(to_read.wget() matches tagged Valid .readings)
             begin
+                // $display (id, fshow(readings));
                 if(readings.control == Response)
                 begin
                     // $display (fshow(readings));
@@ -236,6 +227,11 @@ package Bus;
                 end
             end
         endrule
+
+
+        // rule debug;
+        //     $display(id," :", busy, need_bus);
+        // endrule
         
         method Action granted(Bool permission) if(!busy);
             // $display (id, " Granted");
@@ -250,6 +246,7 @@ package Bus;
                 need_bus <= False;
             end   
         endmethod
+
 
         method Bool valid;
             return need_bus;
@@ -317,11 +314,11 @@ package Bus;
             end
         endrule
         
-        // rule debug;
-            
-        //     debug_clk <= debug_clk + 1;
-        //     if(debug_clk > 20) $finish();
-        // endrule
+        rule debug;
+            // $display ("BUS: ", fshow(bus_state));
+            // debug_clk <= debug_clk + 1;
+            // if(debug_clk > 20) $finish();
+        endrule
 
         interface Put write_to_bus       = toPut(bus_state_inc);
         interface Put write_to_bus_slave = toPut(bus_state_slaves);

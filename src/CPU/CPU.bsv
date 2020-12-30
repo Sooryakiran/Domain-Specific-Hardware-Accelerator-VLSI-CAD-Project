@@ -95,7 +95,9 @@ package CPU;
                   Add# (nc, 16, datalength),
                   Add# (nf, 16, busdatalength),
                   Add# (nd, 8,  datalength),
+                  Add# (nh, SizeOf #(Opcode),  datalength),
                   Add# (ne, 8,  busdatalength),
+                  Add# (ni, 1,  busdatalength),
                   Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)),
                   Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
                   Add# (n_, 16, TAdd#(wordlength, datalength)));    // Just to satisfy the compiler

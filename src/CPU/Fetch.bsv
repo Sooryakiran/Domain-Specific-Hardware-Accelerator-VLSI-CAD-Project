@@ -6,7 +6,7 @@ package Fetch;
     import ClientServer::*;
     import CPUDefines::*;
 
- 
+    `include <VX_Address.bsv>
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
@@ -49,13 +49,18 @@ package Fetch;
 
     module mkFetch (Fetch #(wordlength, datalength))
         provisos (Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
-                  Add# (n_, 16, TAdd#(wordlength, datalength)));
+                  Add# (n_, 16, TAdd#(wordlength, datalength)),
+                  Add# (e__, SizeOf #(Opcode), datalength));
         FIFOF #(Instruction #(wordlength)) instructions   <- mkBypassFIFOF;
         FIFOF #(DecodedInstruction #(datalength)) decoded <- mkPipelineFIFOF;
 
         Reg #(Bit #(wordlength)) pc         <- mkReg(0);
         Reg #(Bit #(32)) debug_clk          <- mkReg(0);
         Reg #(Bit #(1)) wait_for_next_half  <- mkReg(0);
+
+        Reg #(Bool) busy_vec                <- mkReg(False);
+        Reg #(Bit #(4)) vec_states          <- mkRegU;
+        Reg #(Bit #(datalength)) vec_address       <- mkRegU;
         Reg #(Regname) waiting_address      <- mkRegU;
         Reg #(Regname) future               <- mkReg(NO);
         Registers #(datalength) regs        <- mkRegisters;
@@ -111,10 +116,22 @@ package Fetch;
             endactionvalue
         endfunction
 
+        function Action vec_send(Bit #(datalength) val, Bit #(datalength) address);
+            action
+                DecodedInstruction #(datalength) current = DecodedInstruction {
+                                                code : STORE_32,
+                                                src1 : val,
+                                                src2 : address,  
+                                                aux  : ?,
+                                                dst  : ?};
+                decoded.enq(current);
+            endaction
+        endfunction
+
         // `ifndef SMALL_WIDTH
         (* descending_urgency = "master_heavy, store_request" *)
         (* preempts           = "flush_and_branch, master_heavy" *)
-        rule master_heavy (valueOf(wordlength) >= 64 );
+        rule master_heavy (valueOf(wordlength) >= 64 && !busy_vec);
             let x = instructions.first();
             // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             
@@ -147,12 +164,36 @@ package Fetch;
             end           
             instructions.deq();
         endrule
-        // `endif
+        
+        rule vec_process (busy_vec);
+            let x = instructions.first();
+            // $display(vec_states, fshow(x));
+            if (vec_states == 1) vec_send(check_load(x.src2), vec_address + 2);
+            if (vec_states == 2) vec_send(check_load(x.aux),  vec_address + 3);
+            if (vec_states == 3) vec_send(extend(pack(x.code)), vec_address + 4);
+            if (vec_states == 4) vec_send(1, vec_address);
+            if (vec_states == 5) 
+            begin
 
-        // `ifndef HEAVY_WIDTH
+                DecodedInstruction #(datalength) current = DecodedInstruction {
+                            code : x.code,
+                            src1 : check_load(x.src1),
+                            src2 : check_load(x.src2),  
+                            aux  : check_load(x.aux),
+                            dst  : ?}; 
+                $display ("END");
+
+                decoded.enq(current);
+                busy_vec <= False;
+                instructions.deq();
+            end
+            vec_states <= vec_states + 1;
+        endrule
+
+
         (* descending_urgency = "slave_32_bit, master_32_bit, store_request" *)
         (* preempts           = "flush_and_branch, (master_32_bit, increment_pc)" *)
-        rule slave_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 1);
+        rule slave_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 1 && !busy_vec);
             
             let x = instructions.first();
 
@@ -176,7 +217,7 @@ package Fetch;
             decoded.enq(current);
         endrule
 
-        rule master_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 0 );
+        rule master_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 0 && !busy_vec);
             let x = instructions.first();
             // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             if(x.code == ASG_32)
@@ -184,7 +225,7 @@ package Fetch;
                 wait_for_next_half  <= 1;
                 waiting_address     <= x.src1;
 
-                
+                instructions.deq();
             end
             else
             begin
@@ -205,7 +246,19 @@ package Fetch;
                                                 dst  : ?};
 
                     decoded.enq(current);
+                    instructions.deq();
                 end
+                else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32)
+                begin
+                    $display ("FETCH VEC_NEG");
+                    
+                    vec_send(check_load(x.src1), `VX_NEG + 1);
+                    vec_states <= 1;
+                    busy_vec <= True;
+                    vec_address <= `VX_NEG;
+                    
+                end
+                    
                 else
                 begin
                     DecodedInstruction #(datalength) current = DecodedInstruction {
@@ -215,12 +268,13 @@ package Fetch;
                                                 aux  : check_load(x.aux),
                                                 dst  : x.dst};   
                     decoded.enq(current);
+                    instructions.deq();
                     // $display ("TEMP2 ", check_load(R3), ",", check_load(R4));
                     // $display ("TEMP1 ", x.src1, ",", x.src2);
                     
                 end
             end
-            instructions.deq();
+            
         endrule
         // `endif
         

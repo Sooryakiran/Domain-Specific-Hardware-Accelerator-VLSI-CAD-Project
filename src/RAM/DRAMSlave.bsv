@@ -76,6 +76,7 @@ package DRAMSlave;
     /*----------------------------------------------------------------------
                                 Modules
     -----------------------------------------------------------------------*/
+
     module [Module] mkDRAMWrapper #(Integer id) (DRAMWrapper #(blocksize,
                                                               size, 
                                                               offset, 
@@ -111,7 +112,7 @@ package DRAMSlave;
             let x = requests.first(); requests.deq();
             if (x.control == Read)
             begin
-                // $display ("DRAM LOAD");
+                // $display ("DRAM LOAD", num_ports, " ", x.present);
 
                 Bit #(datasize) wires[num_ports + 1];
                 wires[0] = 0;

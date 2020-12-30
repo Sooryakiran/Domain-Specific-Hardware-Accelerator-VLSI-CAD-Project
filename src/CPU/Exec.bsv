@@ -8,6 +8,8 @@ package Exec;
     import Bus::*;
     import CPUDefines::*;
 
+    `include <VX_Address.bsv>
+
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
@@ -41,18 +43,33 @@ package Exec;
                   Add# (nf, 16, busdatalength),
                   Add# (nd, 8,  datalength),
                   Add# (ne, 8,  busdatalength),
+                  Add# (nh, 1,  busdatalength),
                   Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)));    // Just to satisfy the compiler
 
         FIFOF #(Bit #(DecodedInstructionSize#(datalength))) incoming    <- mkBypassFIFOF;
         FIFOF #(RegPackets #(datalength))                   out_to_regs <- mkBypassFIFOF;
         RWire #(Bit #(datalength))                          branch      <- mkRWire();
+        Reg   #(Bit #(datalength))                          wait_count  <- mkReg(0);
         Reg   #(Bit #(32))                                  debug_clk   <- mkReg(0);
         Reg   #(Bool)                                       wait_load   <- mkReg(False);
         Reg   #(Bool)                                       wait_store  <- mkReg(False);
+        Reg   #(Bool)                                       wait_vec    <- mkReg(False);
         Reg   #(Regname)                                    wait_reg    <- mkReg(NO);
         FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_out <- mkBypassFIFOF;
         FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_in  <- mkBypassFIFOF;
 
+
+        rule load_vec_status (wait_vec == True);
+            let x = bus_in.first(); bus_in.deq();
+            Bit #(1) useful_data = truncate(x.data);
+            if (useful_data == 1)
+            begin
+                incoming.deq();
+                wait_vec <= False;
+                $display ("CPU: Vector Op completed");
+            end
+            else $display ("Failed for success");
+        endrule
 
         rule load_from_bus (wait_load == True && wait_reg != NO);
             let x = bus_in.first(); bus_in.deq();
@@ -316,8 +333,31 @@ package Exec;
             // $display ("CPU STORE ", fshow(x));
             endaction
         endfunction
+
+        function vecneg (Bit #(datalength) src, Bit #(datalength) blocksize, Bit #(datalength) dst);
+            action
+                // $display ("Vec Neg", wait_count, " | ", blocksize);
+                if (wait_count > blocksize)
+                begin
+                    // Bit #(TAdd #(datalength, busaddrlength)) address = ;
+                    // Bit #(TAdd#(TMax#(datalength, busaddrlength), 1)) address = extend(addr);
+                    Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
+                                                                                control : Read,
+                                                                                data : ?,
+                                                                                addr : `VX_NEG + 5,
+                                                                                present : 1
+                                                                            };
+                    bus_out.enq(x);
+                    wait_count <= 0;
+                    wait_vec <= True;
+                    $display (debug_clk, "CPU : Sent");
+                end
+                else wait_count <= wait_count + 1;
+                
+            endaction
+        endfunction
         
-        rule exec_master (!wait_load && !wait_store);
+        rule exec_master (!wait_load && !wait_store && !wait_vec);
             DecodedInstruction #(datalength) x = unpack(incoming.first);
             // $display (debug_clk, ":", fshow(x));
             if (x.code == NOP)      incoming.deq();
@@ -339,12 +379,13 @@ package Exec;
             if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
             if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
+            if (x.code == VEC_NEG_I8) vecneg (x.src1, x.src2, x.aux);
     
         endrule
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if(debug_clk>50) $finish();
+            // if(debug_clk>50) $finish();
         endrule 
 
         interface Get get_branch            = toGet(branch);
