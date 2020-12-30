@@ -6,6 +6,9 @@ package VectorCSR;
     import VectorDefines::*;
     import Bus::*;
 
+    export VectorUniaryCSR (..);
+    export mkVectorUniaryCSR;
+
     interface VectorUniaryCSR #(numeric type datasize, numeric type busdatasize, numeric type busaddrsize, numeric type granularity);
         // Towards host/bus
         interface Put #(Chunk #(busdatasize, busaddrsize, granularity)) put_requests;
@@ -13,6 +16,7 @@ package VectorCSR;
 
         // Towards device
         interface Get #(VectorUniaryInstruction #(datasize)) get_instruction;
+        interface Put #(Bool) put_reset_csr;
     endinterface
 
     instance Connectable #(VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity), BusSlave #(busdatasize, busaddrsize, granularity));
@@ -38,6 +42,16 @@ package VectorCSR;
 
         FIFOF #(Chunk #(busdatasize, busaddrsize, granularity)) responses <- mkPipelineFIFOF;
         FIFOF #(VectorUniaryInstruction #(datasize)) instructions <- mkBypassFIFOF;
+
+        FIFOF #(Bool) reset_csr <- mkBypassFIFOF;
+
+        rule reset_status;
+            let x = reset_csr.first(); reset_csr.deq();
+            if (x) 
+            begin
+                csr_idle <= 1;
+            end
+        endrule
 
         rule send_instruction (csr_start == 1);
             csr_start <= 0;
@@ -88,6 +102,7 @@ package VectorCSR;
 
         // Home side interface
         interface Get get_instruction = toGet(instructions);
+        interface Put put_reset_csr = toPut(reset_csr);
     endmodule
 
 endpackage

@@ -5,6 +5,7 @@ package VectorMemoryController;
     import Connectable::*;
     import Bus::*;
     import VectorDefines::*;
+    import VectorCSR::*;
 
     export VectorMemoryController (..);
     export mkVectorMemoryController;
@@ -21,10 +22,21 @@ package VectorMemoryController;
         interface Put #(AddrChunk #(busdatasize, busaddrsize, granularity)) read_req;
         interface Put #(WriteChunk #(busdatasize, busaddrsize, granularity)) write_req;
         interface Get #(DataChunk #(busdatasize, granularity)) read_res;
+
+        // CSR side
+        interface Get #(Bool) get_reset_csr;
     endinterface
 
-    instance Connectable # (VectorMemoryController #(busdatasize, busaddrsize, granularity),
-                            BusMaster #(busdatasize, busaddrsize, granularity));
+    instance Connectable #(VectorMemoryController #(busdatasize, busaddrsize, granularity),
+                           VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity));
+        module mkConnection #(VectorMemoryController #(busdatasize, busaddrsize, granularity) mcu,
+                              VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr) (Empty);
+            mkConnection (mcu.get_reset_csr, csr.put_reset_csr);
+        endmodule
+    endinstance
+
+    instance Connectable #(VectorMemoryController #(busdatasize, busaddrsize, granularity),
+                           BusMaster #(busdatasize, busaddrsize, granularity));
         module mkConnection #(VectorMemoryController #(busdatasize, busaddrsize, granularity) mcu,
                               BusMaster #(busdatasize, busaddrsize, granularity) master) (Empty);
             mkConnection (mcu.get_requests, master.job_send);
@@ -45,6 +57,8 @@ package VectorMemoryController;
 
         PulseWire write_need <- mkPulseWire;
         PulseWire read_need <- mkPulseWire;
+
+        PulseWire reset_csr <- mkPulseWire;
 
         Reg #(Bool) read_req_sent <- mkReg(False);
         Reg #(Bool) write_priority <- mkReg(True);
@@ -82,6 +96,7 @@ package VectorMemoryController;
                                                             addr    : x.addr,
                                                             present : x.present
                                                         };
+            if (x.signal == Break) reset_csr.send();
             job_requests.enq(y);
             write_reqests.deq();
         endrule
@@ -119,6 +134,10 @@ package VectorMemoryController;
         interface Put read_req = toPut (read_reqests);
         interface Put write_req = toPut (write_reqests);
         interface Get read_res = toGet (read_responses);
+    
+        // CSR side
+        interface Get get_reset_csr = toGet (reset_csr);
+
     endmodule
 
 endpackage

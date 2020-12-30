@@ -59,7 +59,7 @@ package CPUDefines;
         Regname aux;    //4 bits
         Regname dst;    //4 bits
         Bit #(TSub #(wordlength, 21)) pad; // Upto n bits
-    } Instruction #(numeric type wordlength) deriving(Bits);
+    } Instruction #(numeric type wordlength) deriving(Bits, FShow);
 
     typedef struct{
         Opcode code;    //5 bits

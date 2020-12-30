@@ -11,7 +11,7 @@ package VectorDefines;
     export PresentSize (..); // Duplicate. Already in Bus::*;
     export CPUDefines::*;
 
-    typedef enum {Continue, Break} ExecSignals deriving(Bits, FShow);
+    typedef enum {Continue, Break} ExecSignals deriving(Bits, FShow, Eq);
 
     typedef struct {
         Opcode code;                    
@@ -33,7 +33,7 @@ package VectorDefines;
         ExecSignals signal;
         Opcode code;
         Bit #(datasize) dst;
-        Bit #(vectordatasize) data;
+        Bit #(vectordatasize) vector_data;
         Bit #(PresentSize #(vectordatasize, granularity)) present;
         
     } BufferChunk #(numeric type datasize,
@@ -55,7 +55,8 @@ package VectorDefines;
                                 numeric type busaddrsize,
                                 numeric type granularity) deriving (Bits, FShow);
 
-    typedef struct {    Bit #(busdatasize) data;
+    typedef struct {    ExecSignals signal;
+                        Bit #(busdatasize) data;
                         Bit #(addrsize) addr;
                         Bit #(PresentSize #(busdatasize, granularity)) present;}
 

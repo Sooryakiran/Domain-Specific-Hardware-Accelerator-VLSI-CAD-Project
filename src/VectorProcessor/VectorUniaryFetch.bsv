@@ -84,7 +84,7 @@ package VectorUniaryFetch;
                                                                         };
                     read_requests.enq(r);
 
-                    $display(fshow(r));
+                    // $display(fshow(r));
                 end
                 else
                 begin
@@ -103,7 +103,7 @@ package VectorUniaryFetch;
                     read_requests.enq(r);
                     instructions.deq();
                     is_busy <= True;
-                    $display (fshow(r));
+                    // $display (fshow(r));
                 end
             endaction
 
@@ -125,12 +125,12 @@ package VectorUniaryFetch;
                                                                                 signal : Continue,
                                                                                 code : y.code,
                                                                                 dst : y.dst,
-                                                                                data : truncate(x.data),
+                                                                                vector_data : truncate(x.data),
                                                                                 present : truncate(x.present)
                                                                                 };
                     decoded_instrutions.enq(to_exec);
                     block_count <= count_plus;
-                    $display (fshow(to_exec));
+                    // $display (fshow(to_exec));
                 end
                 else
                 begin
@@ -140,12 +140,12 @@ package VectorUniaryFetch;
                                                                                 signal : Break,
                                                                                 code : y.code,
                                                                                 dst : y.dst,
-                                                                                data : truncate(x.data),
+                                                                                vector_data : truncate(x.data),
                                                                                 present : truncate(x.present)
                                                                                 };
                     
                     decoded_instrutions.enq(to_exec);
-                    $display (fshow(to_exec));
+                    // $display (fshow(to_exec));
                     block_count <= 0;
                     is_busy <= False;
                     // Reset is_busy, block_count
