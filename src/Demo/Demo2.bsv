@@ -10,7 +10,7 @@ package Demo2;
 
     `include <VX_Address.bsv>
 
-    `define WORD_LENGTH 32
+    `define WORD_LENGTH 64
     `define DATA_LENGTH 32
     `define BUS_DATA_LEN 64
     `define ADDR_LENGTH 20
@@ -18,7 +18,7 @@ package Demo2;
     `define VX_STORAGE_SIZE 2
 
     `define GRANULARITY 8   // Smallest addressible unit
-    `define RAM_BYTES 32    // Ram size (number of addressible units)
+    `define RAM_BYTES 64    // Ram size (number of addressible units)
     `define RAM_PORTS 8     // 4 ports, 1 byte per port for 32 bits
     `define RAM_ADDRESS_OFFSET 1024
 
@@ -32,7 +32,7 @@ package Demo2;
               `GRANULARITY) my_core <- mkCPU(0, "../asm/vector");
         
         DRAMSlave #(`GRANULARITY, 
-                    `RAM_BYTES, 
+                    `RAM_BYTES,     
                     `RAM_ADDRESS_OFFSET, 
                     `BUS_DATA_LEN, 
                     `ADDR_LENGTH, `RAM_PORTS) my_slave <- mkDRAMSlave(0);
@@ -45,7 +45,7 @@ package Demo2;
                        `VECTOR_DATA_SIZE,
                        `BUS_DATA_LEN,
                        `ADDR_LENGTH,
-                       `GRANULARITY) vec_uniary <- mkVectorNeg (`VX_NEG, `VX_STORAGE_SIZE, 1);
+                       `GRANULARITY) vec_uniary <- mkVectorUniary (`VX_ADDRESS, `VX_STORAGE_SIZE, 7);
 
         Vector #(2, BusMaster #(`BUS_DATA_LEN, 
                                 `ADDR_LENGTH, 
@@ -76,7 +76,7 @@ package Demo2;
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if (debug_clk > 200) $finish();
+            if (debug_clk > 500) $finish();
         endrule
 
         
