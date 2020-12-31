@@ -99,6 +99,7 @@ package VectorMemoryController;
             if (x.signal == Break) reset_csr.send();
             job_requests.enq(y);
             write_reqests.deq();
+            // $display ("MCU ", fshow(x));
         endrule
 
         rule process_read_req (read_need);

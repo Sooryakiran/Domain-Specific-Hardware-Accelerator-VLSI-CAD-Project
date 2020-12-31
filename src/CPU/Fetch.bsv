@@ -151,8 +151,21 @@ package Fetch;
                                                             dst  : ?};
 
                 decoded.enq(current);
+                instructions.deq();
             end
+            else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32)
+            begin
+                $display ("FETCH VEC_NEG");
+                
+                vec_send(check_load(x.src1), `VX_ADDRESS + 1);
+                vec_states <= 1;
+                busy_vec <= True;
+                vec_address <= `VX_ADDRESS;
+                
+            end
+                
             else
+                
             begin
                 DecodedInstruction #(datalength) current = DecodedInstruction {
                                             code : x.code,
@@ -161,8 +174,9 @@ package Fetch;
                                             aux  : check_load(x.aux),
                                             dst  : x.dst};   
                 decoded.enq(current);
+                instructions.deq();
             end           
-            instructions.deq();
+            
         endrule
         
         rule vec_process (busy_vec);
@@ -248,14 +262,15 @@ package Fetch;
                     decoded.enq(current);
                     instructions.deq();
                 end
-                else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32)
+                else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
+                         x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
                 begin
                     $display ("FETCH VEC_NEG");
                     
-                    vec_send(check_load(x.src1), `VX_NEG + 1);
+                    vec_send(check_load(x.src1), `VX_ADDRESS + 1);
                     vec_states <= 1;
                     busy_vec <= True;
-                    vec_address <= `VX_NEG;
+                    vec_address <= `VX_ADDRESS;
                     
                 end
                     
