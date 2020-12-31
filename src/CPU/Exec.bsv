@@ -65,10 +65,11 @@ package Exec;
             if (useful_data == 1)
             begin
                 incoming.deq();
-                wait_vec <= False;
-                $display ("CPU: Vector Op completed");
+                // $display ("CPU: Vector Op completed");
             end
-            else $display ("Failed for success");
+            // else $display ("Failed for success");
+
+            wait_vec <= False;
         endrule
 
         rule load_from_bus (wait_load == True && wait_reg != NO);
@@ -344,13 +345,13 @@ package Exec;
                     Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                                 control : Read,
                                                                                 data : ?,
-                                                                                addr : `VX_NEG + 5,
+                                                                                addr : `VX_ADDRESS + 5,
                                                                                 present : 1
                                                                             };
                     bus_out.enq(x);
                     wait_count <= 0;
                     wait_vec <= True;
-                    $display (debug_clk, "CPU : Sent");
+                    // $display (debug_clk, "CPU : Sent");
                 end
                 else wait_count <= wait_count + 1;
                 
@@ -380,13 +381,17 @@ package Exec;
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
             if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
             if (x.code == VEC_NEG_I8) vecneg (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I16) vecneg (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I32) vecneg (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_F32) vecneg (x.src1, x.src2, x.aux);
     
         endrule
 
-        rule debug;
-            debug_clk <= debug_clk + 1;
-            // if(debug_clk>50) $finish();
-        endrule 
+        // rule debug;
+        //     debug_clk <= debug_clk + 1;
+        //     $display (debug_clk, " CPU_CLOCK");
+        //     // if(debug_clk>50) $finish();
+        // endrule 
 
         interface Get get_branch            = toGet(branch);
         interface Put put_decoded           = toPut(incoming);
