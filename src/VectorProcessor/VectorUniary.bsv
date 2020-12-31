@@ -10,10 +10,10 @@ package VectorUniary;
     import VectorUniaryFetch::*;
     import VectorDefines::*;
     import VectorCSR::*;
-    import VectorExecNeg::*;
+    import VectorExec::*;
 
     export VectorUniary (..);
-    export mkVectorNeg;
+    export mkVectorUniary;
     interface VectorUniary #(numeric type datasize,
                              numeric type vectordatasize,
                              numeric type busdatasize,
@@ -25,14 +25,16 @@ package VectorUniary;
         
     endinterface
 
-    module mkVectorNeg #(Bit #(busaddrsize) address, Integer temp_storage_size, Integer id) (VectorUniary #(datasize, vectordatasize, busdatasize, busaddrsize, granularity))
+    module mkVectorUniary #(Bit #(busaddrsize) address, Integer temp_storage_size, Integer id) (VectorUniary #(datasize, vectordatasize, busdatasize, busaddrsize, granularity))
         provisos (Add #(na, datasize, busdatasize), // datasize lte buswidth
                   Add #(nb, 1,        busdatasize), // buswidth >= 1
                   Add #(nc, SizeOf #(Opcode), busdatasize), // opcodesize lte buswidth
                   Add #(nd, vectordatasize, busdatasize),
                   Mul #(ne, granularity, vectordatasize),
                   Add #(nf, PresentSize #(vectordatasize, granularity), PresentSize #(busdatasize, granularity)),
-                  Add #(ng, 8, vectordatasize));
+                  Add #(ng, 8, vectordatasize),
+                  Add #(nh, 16, vectordatasize),
+                  Add #(ni, 32, vectordatasize));
 
         VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr <- mkVectorUniaryCSR (address);
         BusMaster #(busdatasize, busaddrsize, granularity) bus_master_c <- mkBusMaster(id);
@@ -46,7 +48,7 @@ package VectorUniary;
         mkConnection (fetch, mcu);
         mkConnection (mcu, bus_master_c);
 
-        VectorExecNeg #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) exec <- mkVectorExecNeg;
+        VectorExec #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) exec <- mkVectorExec;
         mkConnection (fetch, exec);
         mkConnection (exec, mcu);
         
