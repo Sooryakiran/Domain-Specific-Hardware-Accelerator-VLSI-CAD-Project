@@ -1,18 +1,18 @@
 package Tb;
 	import Vector::*;
 	import FIFO::*;
-	import StmtFSM::*;
+	import StmtFSM::*; 
 
 	interface Tbifc #(numeric type num);
 	endinterface
 	module mkTb (Tbifc #(num));
 
-		// Integer size = 16; // Int datatype size in bits
+		// Integer size = 16; // Int datatype size in bits 	
 		// Integer num = 10; //number of elements to store in vector
 
 
 		function Int#(8) initVals8(Integer i); // function to initialise the vector
-			Int #(8) temp_int = fromInteger(i)*8 + 1;
+			Int #(8) temp_int = fromInteger(i)*8+ 12;
 			// $display(temp_int);
 			return temp_int;
 		endfunction 
@@ -32,29 +32,32 @@ package Tb;
 		 */
 		
 	
-		function Int #(8) int_8();
+		function ActionValue #(Int #(8)) int_8();
+			actionvalue
 			Vector#(num, Int#(8)) temp = map(initVals8, genVector); // initialising the vector
-			
+			for (Integer i= 0; i < valueOf(num); i=i+1)
+				$display("temp[%d] = %d", i, temp[i]);
 			//Int#(8) mini_8 = temp[0];
-			Integer p = 1;
-			Integer t = (valueOf(num) / 2) - 1;
+			Integer p = 0;
+			Integer t = valueOf(num) ;
 			while(t>0)
 				begin
 					Integer ind = 2**p; 
-					for(Integer i=0; i < valueOf(num); i=i+1)
-						begin
+					for(Integer i=0; i < valueOf(num)-ind; i=i+ind)
+						begin 
 							temp[i] = min(temp[i], temp[i+ind]);
 							i=i+ind;
 						end 
-					t = log2(t); 
+					t = t/2; 
 					p=p+1;
 				end
 			return temp[0];
+			endactionvalue
 		endfunction
 
 		function ActionValue #(Int #(16)) int_16();
 			actionvalue
-			Vector#(num, Int#(16)) temp = map(initVals16, genVector); // initialising the vector
+			Vector#(num, Int#(16)) temp = map(initVals16, genVector); // initialising the vector so its wrkin g fine..
 
 			Int#(16) mini_16 = temp[0];
 			for (Integer i=1; i < valueOf(num); i=i+1)
@@ -91,8 +94,10 @@ package Tb;
 		
 		Reg #(Int #(8)) test1 <- mkRegU;
 		Stmt tests = seq
-			test1 <= int_8();
+			action
+			Int #(8) test1 <- int_8();
 			$display(test1);
+			endaction
 			endseq;
 		mkAutoFSM(tests);
 	endmodule
