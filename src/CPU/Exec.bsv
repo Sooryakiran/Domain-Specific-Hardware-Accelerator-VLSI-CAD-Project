@@ -335,7 +335,7 @@ package Exec;
             endaction
         endfunction
 
-        function vecneg (Bit #(datalength) src, Bit #(datalength) blocksize, Bit #(datalength) dst);
+        function vec (Bit #(datalength) src, Bit #(datalength) blocksize, Bit #(datalength) dst);
             action
                 // $display ("Vec Neg", wait_count, " | ", blocksize);
                 if (wait_count > blocksize)
@@ -380,10 +380,14 @@ package Exec;
             if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
             if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
-            if (x.code == VEC_NEG_I8) vecneg (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_I16) vecneg (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_I32) vecneg (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_F32) vecneg (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I8) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I16) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I32) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_F32) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I8) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I16) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I32) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_F32) vec (x.src1, x.src2, x.aux);
     
         endrule
 
