@@ -175,7 +175,6 @@ package VectorUniaryFetch;
         rule decode;
             let x = read_responses.first(); read_responses.deq();
             let y = current_instruction;
-
             if (y.code == VEC_NEG_I8 || y.code == VEC_MIN_I8) bitdecode(x, 8);
             if (y.code == VEC_NEG_I16 || y.code == VEC_MIN_I16) bitdecode(x, 16);
             if (y.code == VEC_NEG_I32 || y.code == VEC_MIN_I32) bitdecode(x, 32);

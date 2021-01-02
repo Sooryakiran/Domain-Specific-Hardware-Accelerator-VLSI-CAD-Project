@@ -52,6 +52,9 @@ package VectorExec;
         Integer num_granularity = valueOf (granularity);
         Reg #(Bit #(datasize)) current_block <- mkReg(0);
 
+        Reg #(Int #(8)) mini8_state <- mkRegU;
+        Reg #(Bool) mini8_state_present <- mkReg(False);
+
         function negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
                 Bit #(vectordatasize) values = x.vector_data;
@@ -170,6 +173,7 @@ package VectorExec;
         function negf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
                 // $display ("hey");
+
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/32];
 
@@ -208,6 +212,53 @@ package VectorExec;
             endaction
         endfunction
 
+        function mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
+            action
+			Bit #(vectordatasize) values = x.vector_data;
+               		Int #(8) temp[num_vectorsize/8];
+			
+			// Assign int
+            Int #(8) big_num = 127;
+			for (Integer i =0; i < num_vectorsize/8; i = i +1 )
+			begin
+                if(fromInteger(i) < x.present) temp[i] = unpack(values[(i+1)*8-1:i*8]);
+                else temp[i] = big_num;
+				$display("ASSIGN %d", temp[i]);
+			end
+			// is this correct?..im nt sure..
+			//Int#(8) mini_8 = temp[0];
+			Integer p = 0;
+			Integer t = num_vectorsize/8 ; 
+			while(t>0)
+            begin
+                Integer ind = 2**p; 
+                for(Integer i=0; i < num_vectorsize/8-ind; i=i+ind)
+                    begin 
+                        temp[i] = min(temp[i], temp[i+ind]);
+                        i=i+ind;
+                    end 
+                t = t/2; 
+                p=p+1;
+            end
+
+            if (mini8_state_present) temp[0] = min(temp[0], mini8_state);
+            mini8_state <= temp[0]; // this line I added
+            if (x.signal == Continue) 
+            begin
+                current_block <= current_block + 1;
+                mini8_state_present <= True;
+            end
+            else 
+            begin
+                // Reset and stuff
+                mini8_state_present <= False;
+                current_block <= 0;
+            end
+            // to_mcu.enq(write_back);
+            
+            $display (temp[0]); // i dont knw this part. wht a
+            endaction
+        endfunction
 
         rule exec_master;
             let x = decoded.first(); decoded.deq();
@@ -216,7 +267,7 @@ package VectorExec;
             if(x.code == VEC_NEG_I16) negi16(x);
             if(x.code == VEC_NEG_I32) negi32(x);
             if(x.code == VEC_NEG_F32) negf32(x);
-            
+            if(x.code == VEC_MIN_I8) mini8(x);
         endrule
 
         interface put_decoded = toPut (decoded);
