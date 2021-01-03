@@ -153,9 +153,10 @@ package Fetch;
                 decoded.enq(current);
                 instructions.deq();
             end
-            else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32)
+            else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
+                    x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
             begin
-                $display ("FETCH VEC_NEG");
+                $display ("FETCH VEC");
                 
                 vec_send(check_load(x.src1), `VX_ADDRESS + 1);
                 vec_states <= 1;
@@ -185,8 +186,9 @@ package Fetch;
             if (vec_states == 1) vec_send(check_load(x.src2), vec_address + 2);
             if (vec_states == 2) vec_send(check_load(x.aux),  vec_address + 3);
             if (vec_states == 3) vec_send(extend(pack(x.code)), vec_address + 4);
-            if (vec_states == 4) vec_send(1, vec_address);
-            if (vec_states == 5) 
+            if (vec_states == 4) vec_send(check_load(x.dst), vec_address + 6);
+            if (vec_states == 5) vec_send(1, vec_address);
+            if (vec_states == 6) 
             begin
 
                 DecodedInstruction #(datalength) current = DecodedInstruction {

@@ -6,29 +6,29 @@ package VectorCSR;
     import VectorDefines::*;
     import Bus::*;
 
-    export VectorUniaryCSR (..);
-    export mkVectorUniaryCSR;
+    export VectorUnaryCSR (..);
+    export mkVectorUnaryCSR;
 
-    interface VectorUniaryCSR #(numeric type datasize, numeric type busdatasize, numeric type busaddrsize, numeric type granularity);
+    interface VectorUnaryCSR #(numeric type datasize, numeric type busdatasize, numeric type busaddrsize, numeric type granularity);
         // Towards host/bus
         interface Put #(Chunk #(busdatasize, busaddrsize, granularity)) put_requests;
         interface Get #(Chunk #(busdatasize, busaddrsize, granularity)) get_responses;
 
         // Towards device
-        interface Get #(VectorUniaryInstruction #(datasize)) get_instruction;
+        interface Get #(VectorUnaryInstruction #(datasize)) get_instruction;
         interface Put #(Bool) put_reset_csr;
     endinterface
 
-    instance Connectable #(VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity), BusSlave #(busdatasize, busaddrsize, granularity));
-        module mkConnection #(VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr, 
+    instance Connectable #(VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity), BusSlave #(busdatasize, busaddrsize, granularity));
+        module mkConnection #(VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr, 
                               BusSlave #(busdatasize, busaddrsize, granularity) bus_slave) (Empty);
-            mkConnection (csr.put_requests, bus_slave.jobs_recieve);
-            mkConnection (csr.get_responses, bus_slave.jobs_done);
+            mkConnection (csr.put_requests, bus_slave.job_recieve);
+            mkConnection (csr.get_responses, bus_slave.job_done);
         endmodule
     endinstance
 
 
-    module mkVectorUniaryCSR #(Bit #(busaddrsize) address) (VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity))
+    module mkVectorUnaryCSR #(Bit #(busaddrsize) address) (VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity))
         provisos (Add #(na, datasize, busdatasize), // datasize lte buswidth
                   Add #(nb, 1,        busdatasize), // buswidth >= 1
                   Add #(nc, SizeOf #(Opcode), busdatasize)); // opcodesize lte buswidth
@@ -39,9 +39,10 @@ package VectorCSR;
         Reg #(Bit #(datasize)) csr_dst <- mkRegU;           // address + 3  write only
         Reg #(Opcode) csr_opcode <- mkRegU;                 // address + 4  write only
         Reg #(Bit #(1)) csr_idle <- mkReg(1);               // address + 5  read  only
+        Reg #(Bit #(datasize)) csr_aux <- mkRegU;           // address + 6
 
         FIFOF #(Chunk #(busdatasize, busaddrsize, granularity)) responses <- mkPipelineFIFOF;
-        FIFOF #(VectorUniaryInstruction #(datasize)) instructions <- mkBypassFIFOF;
+        FIFOF #(VectorUnaryInstruction #(datasize)) instructions <- mkBypassFIFOF;
 
         FIFOF #(Bool) reset_csr <- mkBypassFIFOF;
 
@@ -55,11 +56,12 @@ package VectorCSR;
 
         rule send_instruction (csr_start == 1);
             csr_start <= 0;
-            VectorUniaryInstruction #(datasize) instr = VectorUniaryInstruction {
+            VectorUnaryInstruction #(datasize) instr = VectorUnaryInstruction {
                                                                     code : csr_opcode,
                                                                     src1 : csr_src,
                                                                     blocksize : csr_block_sz,
-                                                                    dst : csr_dst
+                                                                    dst : csr_dst,
+                                                                    aux : csr_aux
                                                                 };
             instructions.enq(instr);
             csr_idle <= 0;
@@ -84,6 +86,7 @@ package VectorCSR;
                     if(x.addr == address + 2) csr_block_sz <= truncate(x.data);
                     if(x.addr == address + 3) csr_dst <= truncate(x.data);
                     if(x.addr == address + 4) csr_opcode <= unpack(truncate(x.data));
+                    if(x.addr == address + 6) csr_aux <= unpack(truncate(x.data));
 
                     Chunk #(busdatasize, busaddrsize, granularity) res = Chunk {
                                                     control : Response,

@@ -1,7 +1,7 @@
 package VectorDefines;
     import CPUDefines::*;
 
-    export VectorUniaryInstruction (..);
+    export VectorUnaryInstruction (..);
     export VectorBinaryInstruction (..);
     export DataChunk (..);
     export AddrChunk (..);
@@ -18,21 +18,24 @@ package VectorDefines;
         Bit #(datasize) src1;         
         Bit #(datasize) src2;         
         Bit #(datasize) blocksize;          
-        Bit #(datasize) dst;                    
+        Bit #(datasize) dst;
+        Bit #(datasize) aux;                    
     }  VectorBinaryInstruction #(numeric type datasize) deriving(Bits, FShow); 
 
     typedef struct {
         Opcode code;                    
         Bit #(datasize) src1;         
         Bit #(datasize) blocksize;          
-        Bit #(datasize) dst;                    
-    }  VectorUniaryInstruction #(numeric type datasize) deriving(Bits, FShow); 
+        Bit #(datasize) dst;
+        Bit #(datasize) aux;                 
+    }  VectorUnaryInstruction #(numeric type datasize) deriving(Bits, FShow); 
 
 
     typedef struct {
         ExecSignals signal;
         Opcode code;
         Bit #(datasize) dst;
+        Bit #(datasize) aux;
         Bit #(vectordatasize) vector_data;
         Bit #(PresentSize #(vectordatasize, granularity)) present;
         

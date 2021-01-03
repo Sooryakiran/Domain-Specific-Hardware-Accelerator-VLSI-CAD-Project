@@ -38,7 +38,11 @@ ops =  ["NOP",
         "VEC_NEG_I8",
         "VEC_NEG_I16",
         "VEC_NEG_I32",
-        "VEC_NEG_F32"]
+        "VEC_NEG_F32",
+        "VEC_MIN_I8",
+        "VEC_MIN_I16",
+        "VEC_MIN_I32",
+        "VEC_MIN_F32"]
 
 regs = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "NO"]
 
@@ -149,7 +153,7 @@ def vecneg(line):
 
 def vecmin(line):
     tokens = line.split()
-    return traditional(tokens[0], tokens[1], tokens[2], tokens[3], "NO")
+    return traditional(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4])
 
 def main(file_name):
     # file_name = sys.argv[1]
@@ -159,48 +163,47 @@ def main(file_name):
         i = 0
         for line in lines:
             i+=1
-            # try:
-            if True:
-                tokens = line.split()
-                op = tokens[0]
+            try:
+                if True:
+                    tokens = line.split()
+                    op = tokens[0]
 
-                if op == "NOP":
-                    outs.append(opnop())
-                elif op == "ASG_8":
-                    outs.append(asg8(line))
-                elif op == "ASG_16":
-                    outs.append(asg16(line))
-                elif op == "ASG_32":
-                    temp_outs = asg32(line)
-                    for temp_out in temp_outs:
-                        outs.append(temp_out)
-                elif op == "MOV":
-                    outs.append(mov(line))
-                elif op == "ADD_I8" or op == "ADD_I16" or op == "ADD_I32" or op == "ADD_F32" :
-                    outs.append(addsub(line))
-                elif op == "SUB_I8" or op == "SUB_I16" or op == "SUB_I32" or op == "SUB_F32":
-                    outs.append(addsub(line))
-                elif op == "IS_EQ":
-                    outs.append(iseq(line))
-                elif op == "JMP":
-                    outs.append(jmp(line))
-                elif op == "JMPIF":
-                    outs.append(jmpif(line))
-                elif op == "LOAD_8" or op == "LOAD_16" or op == "LOAD_32":
-                    outs.append(load(line))
-                elif op == "STORE_8" or op == "STORE_16" or op == "STORE_32":
-                    outs.append(store(line))
-                elif op == "VEC_NEG_I8" or op == "VEC_NEG_I16" or op == "VEC_NEG_I32" or op == "VEC_NEG_F32":
-                    outs.append(vecneg(line))
-                elif op == "VEC_MIN_I8" or op == "VEC_MIN_I16" or op == "VEC_MIN_I32" or op == "VEC_MIN_F32":
-                    outs.append(vecmin(line))
-                else:
-                    raise()
-            # except:
-                
-                
-            #     print("[ERROR] Error on line", i, ":", line)
-            #     exit()
+                    if op == "NOP":
+                        outs.append(opnop())
+                    elif op == "ASG_8":
+                        outs.append(asg8(line))
+                    elif op == "ASG_16":
+                        outs.append(asg16(line))
+                    elif op == "ASG_32":
+                        temp_outs = asg32(line)
+                        for temp_out in temp_outs:
+                            outs.append(temp_out)
+                    elif op == "MOV":
+                        outs.append(mov(line))
+                    elif op == "ADD_I8" or op == "ADD_I16" or op == "ADD_I32" or op == "ADD_F32" :
+                        outs.append(addsub(line))
+                    elif op == "SUB_I8" or op == "SUB_I16" or op == "SUB_I32" or op == "SUB_F32":
+                        outs.append(addsub(line))
+                    elif op == "IS_EQ":
+                        outs.append(iseq(line))
+                    elif op == "JMP":
+                        outs.append(jmp(line))
+                    elif op == "JMPIF":
+                        outs.append(jmpif(line))
+                    elif op == "LOAD_8" or op == "LOAD_16" or op == "LOAD_32":
+                        outs.append(load(line))
+                    elif op == "STORE_8" or op == "STORE_16" or op == "STORE_32":
+                        outs.append(store(line))
+                    elif op == "VEC_NEG_I8" or op == "VEC_NEG_I16" or op == "VEC_NEG_I32" or op == "VEC_NEG_F32":
+                        outs.append(vecneg(line))
+                    elif op == "VEC_MIN_I8" or op == "VEC_MIN_I16" or op == "VEC_MIN_I32" or op == "VEC_MIN_F32":
+                        outs.append(vecmin(line))
+                    else:
+                        # pass
+                        raise(ValueError)
+            except:      
+                print("[ERROR] Error on line", i, ":", line)
+                exit()
 
     fp = open(OUT, 'w')
     for item in outs:

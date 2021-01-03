@@ -8,7 +8,7 @@ package VectorExec;
     import Bus::*;
 
     import VectorDefines::*;
-    import VectorUniaryFetch::*;
+    import VectorUnaryFetch::*;
     import VectorMemoryController::*;
 
     export VectorExec (..);
@@ -23,9 +23,9 @@ package VectorExec;
         interface Get #(WriteChunk #(busdatasize, busaddrsize, granularity)) get_to_mcu;
     endinterface
 
-    instance Connectable #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
+    instance Connectable #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
                            VectorExec #(datasize, vectordatasize, busdatasize, busaddrsize, granularity));
-        module mkConnection #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
+        module mkConnection #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
                               VectorExec #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) exec) (Empty);
             mkConnection (fetch.outgoing_pro_data, exec.put_decoded);
         endmodule
@@ -51,6 +51,10 @@ package VectorExec;
         Integer num_vectorsize = valueOf (vectordatasize);
         Integer num_granularity = valueOf (granularity);
         Reg #(Bit #(datasize)) current_block <- mkReg(0);
+
+        Reg #(Int #(8)) mini8_state <- mkRegU;
+        Reg #(Int #(32)) mini8_p_index <- mkRegU;
+        Reg #(Bool) mini8_state_present <- mkReg(False);
 
         function negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
@@ -170,6 +174,7 @@ package VectorExec;
         function negf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
                 // $display ("hey");
+
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/32];
 
@@ -208,6 +213,68 @@ package VectorExec;
             endaction
         endfunction
 
+        function mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
+            action
+            // $display ("VEXEC ", fshow(x));
+			Bit #(vectordatasize) values = x.vector_data;
+            Int #(8) temp[num_vectorsize/8];
+            Int #(32) p_index[num_vectorsize/8];
+			
+			// Assign int
+            Int #(8) big_num = 127;
+			for (Integer i =0; i < num_vectorsize/8; i = i +1 )
+			begin
+                if(fromInteger(i) < x.present) temp[i] = unpack(values[(i+1)*8-1:i*8]);
+                else temp[i] = big_num;
+				
+                p_index[i] = fromInteger(i);
+                $display("ASSIGN %d", temp[i], p_index[i]);
+            
+			end
+			// is this correct?..im nt sure..
+			//Int#(8) mini_8 = temp[0];
+			Integer p = 0;
+			Integer t = num_vectorsize/8 ; 
+			while(t>0)
+            begin
+                Integer ind = 2**p; 
+                for(Integer i=0; i < num_vectorsize/8-ind; i=i+ind)
+                    begin
+                        p_index[i] = (temp[i] <= temp[i+ind])? p_index[i] : p_index[i+ind];
+                        temp[i] = min(temp[i], temp[i+ind]);
+                        i=i+ind;
+                    end 
+                t = t/2; 
+                p=p+1;
+            end
+
+            $display ("P_IND ", p_index[0]);
+            if (mini8_state_present)
+            begin
+                p_index[0] = (temp[0] < mini8_state)? p_index[0] : mini8_p_index;
+                temp[0] = min(temp[0], mini8_state);
+                
+            end
+            mini8_state <= temp[0];
+            mini8_p_index <= p_index[0];
+
+            if (x.signal == Continue) 
+            begin
+                current_block <= current_block + 1;
+                mini8_state_present <= True;
+            end
+            else 
+            begin
+                // Reset and stuff
+                // TODO write to memory index and value
+                mini8_state_present <= False;
+                current_block <= 0;
+            end
+            
+            
+            $display (temp[0], p_index[0]); 
+            endaction
+        endfunction
 
         rule exec_master;
             let x = decoded.first(); decoded.deq();
@@ -216,7 +283,7 @@ package VectorExec;
             if(x.code == VEC_NEG_I16) negi16(x);
             if(x.code == VEC_NEG_I32) negi32(x);
             if(x.code == VEC_NEG_F32) negf32(x);
-            
+            if(x.code == VEC_MIN_I8) mini8(x);
         endrule
 
         interface put_decoded = toPut (decoded);

@@ -6,7 +6,7 @@ package Demo2;
     import CPU::*;
     import Bus::*;
     import Console::*;
-    import VectorUniary::*;
+    import VectorUnary::*;
 
     `include <VX_Address.bsv>
 
@@ -41,11 +41,11 @@ package Demo2;
                   `ADDR_LENGTH,
                   `GRANULARITY)      my_console <- mkConsole(1, `CONSOLE_ADDRESS);
 
-        VectorUniary #(`DATA_LENGTH,
+        VectorUnary #(`DATA_LENGTH,
                        `VECTOR_DATA_SIZE,
                        `BUS_DATA_LEN,
                        `ADDR_LENGTH,
-                       `GRANULARITY) vec_uniary <- mkVectorUniary (`VX_ADDRESS, `VX_STORAGE_SIZE, 7);
+                       `GRANULARITY) vec_Unary <- mkVectorUnary (`VX_ADDRESS, `VX_STORAGE_SIZE, 7);
 
         Vector #(2, BusMaster #(`BUS_DATA_LEN, 
                                 `ADDR_LENGTH, 
@@ -57,11 +57,11 @@ package Demo2;
 
 
         master_vec[0] = my_core.bus_master;
-        master_vec[1] = vec_uniary.bus_master;
+        master_vec[1] = vec_Unary.bus_master;
 
         slave_vec[0]  = my_slave.dram_slave;
         slave_vec[1]  = my_console.bus_slave;
-        slave_vec[2]  = vec_uniary.bus_slave;
+        slave_vec[2]  = vec_Unary.bus_slave;
 
         Bus #(2, 3, `BUS_DATA_LEN, 
                     `ADDR_LENGTH, 
