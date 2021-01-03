@@ -39,6 +39,7 @@ package VectorCSR;
         Reg #(Bit #(datasize)) csr_dst <- mkRegU;           // address + 3  write only
         Reg #(Opcode) csr_opcode <- mkRegU;                 // address + 4  write only
         Reg #(Bit #(1)) csr_idle <- mkReg(1);               // address + 5  read  only
+        Reg #(Bit #(datasize)) csr_aux <- mkRegU;           // address + 6
 
         FIFOF #(Chunk #(busdatasize, busaddrsize, granularity)) responses <- mkPipelineFIFOF;
         FIFOF #(VectorUnaryInstruction #(datasize)) instructions <- mkBypassFIFOF;
@@ -59,7 +60,8 @@ package VectorCSR;
                                                                     code : csr_opcode,
                                                                     src1 : csr_src,
                                                                     blocksize : csr_block_sz,
-                                                                    dst : csr_dst
+                                                                    dst : csr_dst,
+                                                                    aux : csr_aux
                                                                 };
             instructions.enq(instr);
             csr_idle <= 0;
@@ -84,6 +86,7 @@ package VectorCSR;
                     if(x.addr == address + 2) csr_block_sz <= truncate(x.data);
                     if(x.addr == address + 3) csr_dst <= truncate(x.data);
                     if(x.addr == address + 4) csr_opcode <= unpack(truncate(x.data));
+                    if(x.addr == address + 6) csr_aux <= unpack(truncate(x.data));
 
                     Chunk #(busdatasize, busaddrsize, granularity) res = Chunk {
                                                     control : Response,

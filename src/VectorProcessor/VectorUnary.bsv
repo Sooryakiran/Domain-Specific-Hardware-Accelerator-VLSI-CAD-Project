@@ -38,7 +38,7 @@ package VectorUnary;
 
         VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr <- mkVectorUnaryCSR (address);
         BusMaster #(busdatasize, busaddrsize, granularity) bus_master_c <- mkBusMaster(id);
-        BusSlave  #(busdatasize, busaddrsize, granularity) bus_slave_c  <- mkBusSlave(address, address + 5, id);
+        BusSlave  #(busdatasize, busaddrsize, granularity) bus_slave_c  <- mkBusSlave(address, address + 6, id);
         mkConnection (csr, bus_slave_c);
 
         VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch <- mkVectorUnaryFetch (temp_storage_size);

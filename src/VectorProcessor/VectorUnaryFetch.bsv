@@ -125,6 +125,7 @@ package VectorUnaryFetch;
                                                                                 signal : Continue,
                                                                                 code : y.code,
                                                                                 dst : y.dst,
+                                                                                aux : y.aux,
                                                                                 vector_data : truncate(x.data),
                                                                                 present : truncate(x.present)
                                                                                 };
@@ -140,6 +141,7 @@ package VectorUnaryFetch;
                                                                                 signal : Break,
                                                                                 code : y.code,
                                                                                 dst : y.dst,
+                                                                                aux : y.aux,
                                                                                 vector_data : truncate(x.data),
                                                                                 present : truncate(x.present)
                                                                                 };

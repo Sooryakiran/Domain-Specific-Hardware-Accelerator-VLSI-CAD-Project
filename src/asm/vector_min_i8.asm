@@ -31,7 +31,8 @@ ASG_32 R2 1033
 STORE_8 R1 R2
 ASG_32 R3 1024
 ASG_32 R4 19
-VEC_MIN_I8 R3 R4 R3 ; starting from R3's pointed address, R4 block, write back to R3's pointed address
+ASG_32 R5 1060
+VEC_MIN_I8 R3 R4 R3 R5 ; starting from R3's pointed address, R4 block, write back to R3's pointed address
 ASG_32 R3 1024
 LOAD_8 R3 R1
 ASG_32 R2 128

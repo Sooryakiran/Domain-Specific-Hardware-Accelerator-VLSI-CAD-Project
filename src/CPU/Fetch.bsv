@@ -186,8 +186,9 @@ package Fetch;
             if (vec_states == 1) vec_send(check_load(x.src2), vec_address + 2);
             if (vec_states == 2) vec_send(check_load(x.aux),  vec_address + 3);
             if (vec_states == 3) vec_send(extend(pack(x.code)), vec_address + 4);
-            if (vec_states == 4) vec_send(1, vec_address);
-            if (vec_states == 5) 
+            if (vec_states == 4) vec_send(check_load(x.dst), vec_address + 6);
+            if (vec_states == 5) vec_send(1, vec_address);
+            if (vec_states == 6) 
             begin
 
                 DecodedInstruction #(datalength) current = DecodedInstruction {

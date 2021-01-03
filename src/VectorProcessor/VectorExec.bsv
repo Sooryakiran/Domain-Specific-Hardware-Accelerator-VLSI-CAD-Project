@@ -53,6 +53,7 @@ package VectorExec;
         Reg #(Bit #(datasize)) current_block <- mkReg(0);
 
         Reg #(Int #(8)) mini8_state <- mkRegU;
+        Reg #(Int #(32)) mini8_p_index <- mkRegU;
         Reg #(Bool) mini8_state_present <- mkReg(False);
 
         function negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
@@ -214,8 +215,10 @@ package VectorExec;
 
         function mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
+            // $display ("VEXEC ", fshow(x));
 			Bit #(vectordatasize) values = x.vector_data;
-               		Int #(8) temp[num_vectorsize/8];
+            Int #(8) temp[num_vectorsize/8];
+            Int #(32) p_index[num_vectorsize/8];
 			
 			// Assign int
             Int #(8) big_num = 127;
@@ -223,7 +226,10 @@ package VectorExec;
 			begin
                 if(fromInteger(i) < x.present) temp[i] = unpack(values[(i+1)*8-1:i*8]);
                 else temp[i] = big_num;
-				$display("ASSIGN %d", temp[i]);
+				
+                p_index[i] = fromInteger(i);
+                $display("ASSIGN %d", temp[i], p_index[i]);
+            
 			end
 			// is this correct?..im nt sure..
 			//Int#(8) mini_8 = temp[0];
@@ -233,7 +239,8 @@ package VectorExec;
             begin
                 Integer ind = 2**p; 
                 for(Integer i=0; i < num_vectorsize/8-ind; i=i+ind)
-                    begin 
+                    begin
+                        p_index[i] = (temp[i] <= temp[i+ind])? p_index[i] : p_index[i+ind];
                         temp[i] = min(temp[i], temp[i+ind]);
                         i=i+ind;
                     end 
@@ -241,8 +248,16 @@ package VectorExec;
                 p=p+1;
             end
 
-            if (mini8_state_present) temp[0] = min(temp[0], mini8_state);
-            mini8_state <= temp[0]; // this line I added
+            $display ("P_IND ", p_index[0]);
+            if (mini8_state_present)
+            begin
+                p_index[0] = (temp[0] < mini8_state)? p_index[0] : mini8_p_index;
+                temp[0] = min(temp[0], mini8_state);
+                
+            end
+            mini8_state <= temp[0];
+            mini8_p_index <= p_index[0];
+
             if (x.signal == Continue) 
             begin
                 current_block <= current_block + 1;
@@ -251,12 +266,13 @@ package VectorExec;
             else 
             begin
                 // Reset and stuff
+                // TODO write to memory index and value
                 mini8_state_present <= False;
                 current_block <= 0;
             end
-            // to_mcu.enq(write_back);
             
-            $display (temp[0]); // i dont knw this part. wht a
+            
+            $display (temp[0], p_index[0]); 
             endaction
         endfunction
 

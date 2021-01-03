@@ -18,14 +18,16 @@ package VectorDefines;
         Bit #(datasize) src1;         
         Bit #(datasize) src2;         
         Bit #(datasize) blocksize;          
-        Bit #(datasize) dst;                    
+        Bit #(datasize) dst;
+        Bit #(datasize) aux;                    
     }  VectorBinaryInstruction #(numeric type datasize) deriving(Bits, FShow); 
 
     typedef struct {
         Opcode code;                    
         Bit #(datasize) src1;         
         Bit #(datasize) blocksize;          
-        Bit #(datasize) dst;                    
+        Bit #(datasize) dst;
+        Bit #(datasize) aux;                 
     }  VectorUnaryInstruction #(numeric type datasize) deriving(Bits, FShow); 
 
 
@@ -33,6 +35,7 @@ package VectorDefines;
         ExecSignals signal;
         Opcode code;
         Bit #(datasize) dst;
+        Bit #(datasize) aux;
         Bit #(vectordatasize) vector_data;
         Bit #(PresentSize #(vectordatasize, granularity)) present;
         
