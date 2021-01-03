@@ -8,7 +8,7 @@ package VectorExec;
     import Bus::*;
 
     import VectorDefines::*;
-    import VectorUniaryFetch::*;
+    import VectorUnaryFetch::*;
     import VectorMemoryController::*;
 
     export VectorExec (..);
@@ -23,9 +23,9 @@ package VectorExec;
         interface Get #(WriteChunk #(busdatasize, busaddrsize, granularity)) get_to_mcu;
     endinterface
 
-    instance Connectable #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
+    instance Connectable #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
                            VectorExec #(datasize, vectordatasize, busdatasize, busaddrsize, granularity));
-        module mkConnection #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
+        module mkConnection #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
                               VectorExec #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) exec) (Empty);
             mkConnection (fetch.outgoing_pro_data, exec.put_decoded);
         endmodule

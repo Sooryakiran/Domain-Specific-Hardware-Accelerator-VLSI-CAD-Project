@@ -28,9 +28,9 @@ package VectorMemoryController;
     endinterface
 
     instance Connectable #(VectorMemoryController #(busdatasize, busaddrsize, granularity),
-                           VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity));
+                           VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity));
         module mkConnection #(VectorMemoryController #(busdatasize, busaddrsize, granularity) mcu,
-                              VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr) (Empty);
+                              VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr) (Empty);
             mkConnection (mcu.get_reset_csr, csr.put_reset_csr);
         endmodule
     endinstance

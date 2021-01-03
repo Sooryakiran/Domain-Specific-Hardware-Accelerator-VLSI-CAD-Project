@@ -1,4 +1,4 @@
-package VectorUniaryFetch;
+package VectorUnaryFetch;
 
     import GetPut::*;
     import FIFOF::*;
@@ -9,14 +9,14 @@ package VectorUniaryFetch;
     import VectorDefines::*;
     import VectorCSR::*;
 
-    interface VectorUniaryFetch #(numeric type datasize, 
+    interface VectorUnaryFetch #(numeric type datasize, 
                                   numeric type vectordatasize,
                                   numeric type busdatasize, 
                                   numeric type busaddrsize,
                                   numeric type granularity);
     
         // with csr
-        interface Put #(VectorUniaryInstruction #(datasize)) put_instruction;
+        interface Put #(VectorUnaryInstruction #(datasize)) put_instruction;
         
         // with memory controller
         interface Get #(AddrChunk #(busdatasize, busaddrsize, granularity)) read_req;
@@ -27,24 +27,24 @@ package VectorUniaryFetch;
 
     endinterface
 
-    instance Connectable #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
+    instance Connectable #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
                            VectorMemoryController #(busdatasize, busaddrsize, granularity));
-        module mkConnection #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
+        module mkConnection #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
                              VectorMemoryController #(busdatasize, busaddrsize, granularity) mcu) (Empty);
             mkConnection (fetch.read_req, mcu.read_req);
             mkConnection (fetch.incoming_raw_data, mcu.read_res);
         endmodule
     endinstance
 
-    instance Connectable #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
-                           VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity));
-        module mkConnection #(VectorUniaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
-                              VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr) (Empty);
+    instance Connectable #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity),
+                           VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity));
+        module mkConnection #(VectorUnaryFetch #(datasize, vectordatasize, busdatasize, busaddrsize, granularity) fetch,
+                              VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr) (Empty);
             mkConnection (fetch.put_instruction, csr.get_instruction);
         endmodule
     endinstance
 
-    module mkVectorUniaryFetch #(Integer temp_storage_size) (VectorUniaryFetch #(datasize, 
+    module mkVectorUnaryFetch #(Integer temp_storage_size) (VectorUnaryFetch #(datasize, 
                                                     vectordatasize,
                                                     busdatasize,
                                                     busaddrsize,
@@ -56,14 +56,14 @@ package VectorUniaryFetch;
         Integer num_vectordatasize = valueOf(vectordatasize);
         Integer num_granularity = valueOf(granularity);
                                                    
-        FIFOF #(VectorUniaryInstruction #(datasize)) instructions <- mkPipelineFIFOF;
+        FIFOF #(VectorUnaryInstruction #(datasize)) instructions <- mkPipelineFIFOF;
         FIFOF #(AddrChunk #(busdatasize, busaddrsize, granularity)) read_requests <- mkBypassFIFOF;
         FIFOF #(DataChunk #(busdatasize, granularity)) read_responses <- mkBypassFIFOF;
         FIFOF #(BufferChunk #(datasize, vectordatasize, granularity)) decoded_instrutions <- mkSizedBypassFIFOF (temp_storage_size);
         Reg #(Bit #(datasize)) current_block <- mkReg(0);
         Reg #(Bit #(datasize)) block_count <- mkReg(0);
         Reg #(Bool) is_busy <- mkReg(False);
-        Reg #(VectorUniaryInstruction #(datasize)) current_instruction <- mkRegU;
+        Reg #(VectorUnaryInstruction #(datasize)) current_instruction <- mkRegU;
 
         function Action bitfetch (Bit #(datasize) start, Bit #(datasize) blocksize, Bit #(datasize) dst, Integer n);
             action
