@@ -66,8 +66,8 @@ package DRAMSlave;
                                             addrsize, 
                                             blocksize) slave) (Empty);
 
-            mkConnection (wrap.put_requests, slave.jobs_recieve);
-            mkConnection (slave.jobs_done, wrap.get_responses);
+            mkConnection (wrap.put_requests, slave.job_recieve);
+            mkConnection (slave.job_done, wrap.get_responses);
         endmodule
 
                       

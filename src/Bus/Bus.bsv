@@ -77,8 +77,8 @@ package Bus;
                         numeric type addrsize, 
                         numeric type granularity);
         // Front end
-        interface Get #(Chunk #(datasize, addrsize, granularity)) jobs_recieve;
-        interface Put #(Chunk #(datasize, addrsize, granularity)) jobs_done;
+        interface Get #(Chunk #(datasize, addrsize, granularity)) job_recieve;
+        interface Put #(Chunk #(datasize, addrsize, granularity)) job_done;
 
         // Backend
         method Bool is_address_valid (Bit #(addrsize) addr);
@@ -178,7 +178,7 @@ package Bus;
             end
         endrule
 
-        rule job_done (busy);
+        rule check_job_done (busy);
             let x = done.first();
             done_to_sent.enq(x);
             busy <= False;
@@ -195,8 +195,8 @@ package Bus;
         interface Put put_states = toPut (readings);
         interface Get get_states = toGet (done_to_sent);
        
-        interface Put jobs_done = toPut (done);
-        interface Get jobs_recieve = toGet (jobs);
+        interface Put job_done = toPut (done);
+        interface Get job_recieve = toGet (jobs);
     endmodule
 
     module mkBusMaster #(Integer id) (BusMaster #(datasize, addrsize, granularity));
@@ -373,14 +373,14 @@ package Bus;
 
         rule yaay (cntr == 5);
             // $display ("Changed");
-            let x = my_slaves[1].jobs_recieve.get();
-            my_slaves[1].jobs_done.put(blah);
+            let x = my_slaves[1].job_recieve.get();
+            my_slaves[1].job_done.put(blah);
         endrule
 
         rule yaay2 (cntr == 8);
             // $display ("Changed");
-            let x = my_slaves[0].jobs_recieve.get();
-            my_slaves[0].jobs_done.put(blah);
+            let x = my_slaves[0].job_recieve.get();
+            my_slaves[0].job_done.put(blah);
         endrule
 
         rule debug;

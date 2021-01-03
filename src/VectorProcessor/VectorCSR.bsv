@@ -22,8 +22,8 @@ package VectorCSR;
     instance Connectable #(VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity), BusSlave #(busdatasize, busaddrsize, granularity));
         module mkConnection #(VectorUniaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr, 
                               BusSlave #(busdatasize, busaddrsize, granularity) bus_slave) (Empty);
-            mkConnection (csr.put_requests, bus_slave.jobs_recieve);
-            mkConnection (csr.get_responses, bus_slave.jobs_done);
+            mkConnection (csr.put_requests, bus_slave.job_recieve);
+            mkConnection (csr.get_responses, bus_slave.job_done);
         endmodule
     endinstance
 

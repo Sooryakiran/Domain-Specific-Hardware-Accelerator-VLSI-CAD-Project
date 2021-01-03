@@ -23,8 +23,8 @@ package Console;
 
     instance Connectable #(ConsoleCore #(datalen, addrlen, granularity), BusSlave #(datalen, addrlen, granularity));
         module mkConnection #(ConsoleCore #(datalen, addrlen, granularity) c, BusSlave #(datalen, addrlen, granularity) b) (Empty);
-            mkConnection (c.put_data, b.jobs_recieve);
-            mkConnection (c.get_data, b.jobs_done);
+            mkConnection (c.put_data, b.job_recieve);
+            mkConnection (c.get_data, b.job_done);
         endmodule
     endinstance
 
