@@ -1,5 +1,5 @@
 NOP ; Load Vectors to ram
-ASG_32 R1 11.1     ; Value
+ASG_32 R1 -11.1     ; Value
 ASG_32 R2 1024   ; Address
 STORE_32 R1 R2  ; Store R1 to address poiinted by R2
 ASG_32 R2 1028  
