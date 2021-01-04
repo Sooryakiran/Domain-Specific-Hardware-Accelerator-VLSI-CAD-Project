@@ -60,7 +60,7 @@ package Console;
                 else if (x.present == 4)
                 begin
                     Int #(32) data_big = unpack(truncate(data));
-                    $display ("CONSOLE %h | %d | %f", data_big, data_big, data_big);
+                    $display ("CONSOLE %h | %d", data_big, data_big);
                 end
             end
             Chunk #(datalen, addrlen, granularity) out_stuff = Chunk {
