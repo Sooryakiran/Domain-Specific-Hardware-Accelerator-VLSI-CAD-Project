@@ -7,10 +7,10 @@ package Fetch;
     import CPUDefines::*;
 
     `include <VX_Address.bsv>
+
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
-
     interface Registers #(numeric type datalength);
         method Bit #(datalength) load  (Regname name);
         method Action            store (Bit #(datalength) data, Regname name);
@@ -26,7 +26,6 @@ package Fetch;
     /*----------------------------------------------------------------------
                             Module Declarations
     -----------------------------------------------------------------------*/
-
     module mkRegisters (Registers #(datalength));
         Vector #(8, Reg #(Bit #(datalength))) regs <- replicateM(mkRegU);
 
@@ -45,7 +44,6 @@ package Fetch;
             endaction
         endmethod
     endmodule : mkRegisters
-
 
     module mkFetch (Fetch #(wordlength, datalength))
         provisos (Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
@@ -128,13 +126,10 @@ package Fetch;
             endaction
         endfunction
 
-        // `ifndef SMALL_WIDTH
         (* descending_urgency = "master_heavy, store_request" *)
         (* preempts           = "flush_and_branch, master_heavy" *)
         rule master_heavy (valueOf(wordlength) >= 64 && !busy_vec);
             let x = instructions.first();
-            // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
-            
             if (x.code == ASG_8 || x.code == ASG_16 || x.code == ASG_32)
             begin
                 HeavyData #(wordlength, datalength) heavy = unpack(pack(x));
@@ -156,17 +151,12 @@ package Fetch;
             else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
                     x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
             begin
-                // $display ("FETCH VEC");
-                
                 vec_send(check_load(x.src1), `VX_ADDRESS + 1);
-                vec_states <= 1;
-                busy_vec <= True;
+                vec_states  <= 1;
+                busy_vec    <= True;
                 vec_address <= `VX_ADDRESS;
-                
             end
-                
             else
-                
             begin
                 DecodedInstruction #(datalength) current = DecodedInstruction {
                                             code : x.code,
@@ -177,12 +167,10 @@ package Fetch;
                 decoded.enq(current);
                 instructions.deq();
             end           
-            
         endrule
         
         rule vec_process (busy_vec);
             let x = instructions.first();
-            // $display(vec_states, fshow(x));
             if (vec_states == 1) vec_send(check_load(x.src2), vec_address + 2);
             if (vec_states == 2) vec_send(check_load(x.aux),  vec_address + 3);
             if (vec_states == 3) vec_send(extend(pack(x.code)), vec_address + 4);
@@ -197,32 +185,24 @@ package Fetch;
                             src2 : check_load(x.src2),  
                             aux  : check_load(x.aux),
                             dst  : ?}; 
-                // $display ("END");
-
                 decoded.enq(current);
                 busy_vec <= False;
                 instructions.deq();
             end
             vec_states <= vec_states + 1;
         endrule
-
-
         (* descending_urgency = "slave_32_bit, master_32_bit, store_request" *)
         (* preempts           = "flush_and_branch, (master_32_bit, increment_pc)" *)
         rule slave_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 1 && !busy_vec);
-            
             let x = instructions.first();
-
             Bit #(TAdd #(wordlength, datalength)) temp_data = extend(pack(x));
 
             RegPackets #(datalength) current_store = RegPackets {
                                                         data     : truncate(temp_data),
                                                         register : waiting_address};
-
             store_from_fetch.wset(current_store);
             wait_for_next_half <= 0;
             instructions.deq();
-
             DecodedInstruction #(datalength) current = DecodedInstruction {
                     code : NOP,
                     src1 : ?,
@@ -235,12 +215,10 @@ package Fetch;
 
         rule master_32_bit (valueOf(wordlength) < 64 && wait_for_next_half == 0 && !busy_vec);
             let x = instructions.first();
-            // $display("[", debug_clk ,"] PC:", pc, ", ", fshow(instructions.first().code));
             if(x.code == ASG_32)
             begin
                 wait_for_next_half  <= 1;
                 waiting_address     <= x.src1;
-
                 instructions.deq();
             end
             else
@@ -267,15 +245,12 @@ package Fetch;
                 else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
                          x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
                 begin
-                    // $display ("FETCH VEC_NEG");
-                    
                     vec_send(check_load(x.src1), `VX_ADDRESS + 1);
                     vec_states <= 1;
                     busy_vec <= True;
                     vec_address <= `VX_ADDRESS;
                     
                 end
-                    
                 else
                 begin
                     DecodedInstruction #(datalength) current = DecodedInstruction {
@@ -286,15 +261,10 @@ package Fetch;
                                                 dst  : x.dst};   
                     decoded.enq(current);
                     instructions.deq();
-                    // $display ("TEMP2 ", check_load(R3), ",", check_load(R4));
-                    // $display ("TEMP1 ", x.src1, ",", x.src2);
-                    
                 end
             end
             
         endrule
-        // `endif
-        
 
         rule store_request;
             if(store_from_exec.wget() matches tagged Valid .packet_ex)
@@ -317,7 +287,6 @@ package Fetch;
         endrule
 
         rule debug_clk_upd;
-            // $display ("R1 ", regs.load(R1));
             debug_clk <= debug_clk + 1;
         endrule
     
@@ -328,20 +297,15 @@ package Fetch;
         rule flush_and_branch (branch.wget() matches tagged Valid .branch_id);
             instructions.clear();
             decoded.clear();
-
             Bit #(TAdd #(datalength, wordlength)) temp_id = extend(branch_id);
             pc <= truncate(temp_id);
-
-            // $display ("Branch recieved ", branch_id);
         endrule
 
         interface Put store_to_reg  = toPut(store_back_to_regs());
-
         interface Client imem_client;
             interface Get request   = toGet(pc);
             interface Put response  = toPut(put_instructions);
         endinterface
-
         interface Get get_decoded   = toGet(send_decoded());
         interface Put put_branch    = toPut(branch);
     endmodule : mkFetch

@@ -1,6 +1,4 @@
 package Bus;
-
-    import StmtFSM::*;
     import Vector::*;
     import GetPut::*;
     import Arbiter::*;
@@ -165,13 +163,10 @@ package Bus;
         endfunction
 
         rule check_for_requests (!busy);
-            // $display (id, " READINGS ", fshow(busy));
             if (readings.wget() matches tagged Valid .reading_val)
             begin
-                // $display (id, fshow(reading_val));
                 if(is_my_job (reading_val.addr) && !busy && reading_val.control != Response)
                 begin
-                    // $display (id, " got job ", fshow(reading_val));
                     busy <= True;
                     jobs.enq(reading_val);
                 end
@@ -182,10 +177,8 @@ package Bus;
             let x = done.first();
             done_to_sent.enq(x);
             busy <= False;
-            // $display (id, " I did my job!");
             done.deq();
         endrule
-
 
         method Bool is_address_valid (Bit #(addrsize) address);
             if (lower_bound <= address && upper_bound >= address) return True;
@@ -217,27 +210,17 @@ package Bus;
         rule get_response (busy);
             if(to_read.wget() matches tagged Valid .readings)
             begin
-                // $display (id, fshow(readings));
                 if(readings.control == Response)
                 begin
-                    // $display (fshow(readings));
-                    // $display (id, " ", fshow(readings));
                     responses.enq(readings);   
                     busy <= False;
                 end
             end
         endrule
-
-
-        // rule debug;
-        //     $display(id," :", busy, need_bus);
-        // endrule
         
         method Action granted(Bool permission) if(!busy);
-            // $display (id, " Granted");
             if(!busy && permission && no_traffic && buff_to_write.notEmpty())
             begin
-                // $display (id, " Available");
                 let x = buff_to_write.first();
                 to_write.enq(x); 
                 buff_to_write.deq();
@@ -289,35 +272,22 @@ package Bus;
         RWire #(Chunk #(datasize, addrsize, granularity)) bus_state_slaves <- mkRWire;
 
 
-        // (* preempts = "update_states, update_states_slaves" *)
         rule update_states;
             if (bus_state_inc.wget matches tagged Valid .x) 
             begin
-                // $display (debug_clk, " Masters win");
-                // $display (fshow(x));
                 bus_state <= x;
             end
             else if (bus_state_slaves.wget matches tagged Valid .y)
             begin
-                // $display (debug_clk, " Slaves win");
-                // $display (fshow(y));
                 bus_state <= y;
-
             end
         endrule
 
         rule put_availability;
-            // $display ("Putting availablility, ", fshow(bus_state.control));
             for (Integer i = 0; i < master_count ; i = i + 1)
             begin
                 master_vec[i].available(bus_state.control == Response);
             end
-        endrule
-        
-        rule debug;
-            // $display ("BUS: ", fshow(bus_state));
-            // debug_clk <= debug_clk + 1;
-            // if(debug_clk > 20) $finish();
         endrule
 
         interface Put write_to_bus       = toPut(bus_state_inc);
@@ -325,67 +295,4 @@ package Bus;
         interface Get read_from_bus      = toGet(bus_state);          
     endmodule
 
-
-
-    module test (Empty);
-        Reg #(Bit #(32)) cntr <- mkReg(0);
-
-        Vector #(3, BusMaster #(32, 32, 8)) my_masters;
-        for (Integer i = 0 ; i < 3; i = i + 1)
-            my_masters[i] <- mkBusMaster(i);
-
-        Vector #(2, BusSlave#(32, 32, 8)) my_slaves;
-        
-        my_slaves[0] <- mkBusSlave(0, 100, 0);
-        my_slaves[1] <- mkBusSlave(101, 200, 1);
-
-        Bus #(3, 2, 32, 32, 8) bus <- mkBus(my_masters, my_slaves);
-
-
-        mkConnection (my_masters, bus);
-        // for (Integer i = 0 ; i < 3; i = i + 1)
-        //     mkConnection(my_masters[i], bus);
-
-        mkConnection(my_slaves, bus);
-        Chunk #(32, 32, 8) bleh = Chunk {
-                                    control : Read,
-                                    data : 12,
-                                    addr : 101,
-                                    present : 1};
-        Chunk #(32, 32, 8) bleh2 = Chunk {
-                                control : Read,
-                                data : 12,
-                                addr : 1,
-                                present : 1};
-
-        Chunk #(32, 32, 8) blah = Chunk {
-                                    control : Response,
-                                    data : 13,
-                                    addr : 101,
-                                    present : 1};
-
-        
-        rule lol (cntr ==0);
-            my_masters[0].job_send.put(bleh);
-            my_masters[1].job_send.put(bleh2);
-            
-        endrule
-
-        rule yaay (cntr == 5);
-            // $display ("Changed");
-            let x = my_slaves[1].job_recieve.get();
-            my_slaves[1].job_done.put(blah);
-        endrule
-
-        rule yaay2 (cntr == 8);
-            // $display ("Changed");
-            let x = my_slaves[0].job_recieve.get();
-            my_slaves[0].job_done.put(blah);
-        endrule
-
-        rule debug;
-            cntr <= cntr + 1;
-        endrule
-        
-    endmodule
 endpackage : Bus

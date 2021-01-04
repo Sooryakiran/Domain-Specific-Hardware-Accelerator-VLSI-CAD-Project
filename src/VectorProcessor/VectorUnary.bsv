@@ -26,9 +26,9 @@ package VectorUnary;
     endinterface
 
     module mkVectorUnary #(Bit #(busaddrsize) address, Integer temp_storage_size, Integer id) (VectorUnary #(datasize, vectordatasize, busdatasize, busaddrsize, granularity))
-        provisos (Add #(na, datasize, busdatasize), // datasize lte buswidth
-                  Add #(nb, 1,        busdatasize), // buswidth >= 1
-                  Add #(nc, SizeOf #(Opcode), busdatasize), // opcodesize lte buswidth
+        provisos (Add #(na, datasize, busdatasize), 
+                  Add #(nb, 1,        busdatasize), 
+                  Add #(nc, SizeOf #(Opcode), busdatasize), 
                   Add #(nd, vectordatasize, busdatasize),
                   Mul #(ne, granularity, vectordatasize),
                   Add #(nf, PresentSize #(vectordatasize, granularity), PresentSize #(busdatasize, granularity)),

@@ -66,6 +66,4 @@ package VectorDefines;
                         WriteChunk #(numeric type busdatasize,
                                 numeric type addrsize,
                                 numeric type granularity) deriving (Bits, FShow);
-
-
 endpackage

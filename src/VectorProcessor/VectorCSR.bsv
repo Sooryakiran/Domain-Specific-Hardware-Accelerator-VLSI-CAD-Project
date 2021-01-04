@@ -9,7 +9,11 @@ package VectorCSR;
     export VectorUnaryCSR (..);
     export mkVectorUnaryCSR;
 
-    interface VectorUnaryCSR #(numeric type datasize, numeric type busdatasize, numeric type busaddrsize, numeric type granularity);
+    interface VectorUnaryCSR #(numeric type datasize, 
+                               numeric type busdatasize, 
+                               numeric type busaddrsize, 
+                               numeric type granularity);
+
         // Towards host/bus
         interface Put #(Chunk #(busdatasize, busaddrsize, granularity)) put_requests;
         interface Get #(Chunk #(busdatasize, busaddrsize, granularity)) get_responses;
@@ -19,7 +23,8 @@ package VectorCSR;
         interface Put #(Bool) put_reset_csr;
     endinterface
 
-    instance Connectable #(VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity), BusSlave #(busdatasize, busaddrsize, granularity));
+    instance Connectable #(VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity), 
+                           BusSlave #(busdatasize, busaddrsize, granularity));
         module mkConnection #(VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr, 
                               BusSlave #(busdatasize, busaddrsize, granularity) bus_slave) (Empty);
             mkConnection (csr.put_requests, bus_slave.job_recieve);
@@ -28,10 +33,13 @@ package VectorCSR;
     endinstance
 
 
-    module mkVectorUnaryCSR #(Bit #(busaddrsize) address) (VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity))
-        provisos (Add #(na, datasize, busdatasize), // datasize lte buswidth
-                  Add #(nb, 1,        busdatasize), // buswidth >= 1
-                  Add #(nc, SizeOf #(Opcode), busdatasize)); // opcodesize lte buswidth
+    module mkVectorUnaryCSR #(Bit #(busaddrsize) address) (VectorUnaryCSR #(datasize, 
+                                                                            busdatasize, 
+                                                                            busaddrsize, 
+                                                                            granularity))
+        provisos (Add #(na, datasize, busdatasize),
+                  Add #(nb, 1,        busdatasize), 
+                  Add #(nc, SizeOf #(Opcode), busdatasize));
 
         Reg #(Bit #(1)) csr_start <- mkReg(0);              // address      write only
         Reg #(Bit #(datasize)) csr_src <- mkRegU;           // address + 1  write only
@@ -41,11 +49,11 @@ package VectorCSR;
         Reg #(Bit #(1)) csr_idle <- mkReg(1);               // address + 5  read  only
         Reg #(Bit #(datasize)) csr_aux <- mkRegU;           // address + 6
 
-        FIFOF #(Chunk #(busdatasize, busaddrsize, granularity)) responses <- mkPipelineFIFOF;
-        FIFOF #(VectorUnaryInstruction #(datasize)) instructions <- mkBypassFIFOF;
+        FIFOF #(Chunk #(busdatasize, busaddrsize, granularity)) responses    <- mkPipelineFIFOF;
+        FIFOF #(VectorUnaryInstruction #(datasize))             instructions <- mkBypassFIFOF;
+        FIFOF #(Bool)                                           reset_csr    <- mkBypassFIFOF;
 
-        FIFOF #(Bool) reset_csr <- mkBypassFIFOF;
-
+        (*mutually_exclusive = "reset_status, send_instruction" *)
         rule reset_status;
             let x = reset_csr.first(); reset_csr.deq();
             if (x) 
@@ -80,7 +88,6 @@ package VectorCSR;
                 end
                 else if (x.control == Write)
                 begin
-                    // $display ("CSR GOT WRITE ", fshow(x));
                     if(x.addr == address) csr_start <= truncate(x.data);
                     if(x.addr == address + 1) csr_src <= truncate(x.data);
                     if(x.addr == address + 2) csr_block_sz <= truncate(x.data);
@@ -99,13 +106,10 @@ package VectorCSR;
             endaction
         endfunction
 
-        // Bus side interface
-        interface Put put_requests = toPut (fn_put_requests);
-        interface Get get_responses = toGet (responses);
-
-        // Home side interface
-        interface Get get_instruction = toGet(instructions);
-        interface Put put_reset_csr = toPut(reset_csr);
+        interface Put put_requests      = toPut (fn_put_requests);
+        interface Get get_responses     = toGet (responses);
+        interface Get get_instruction   = toGet(instructions);
+        interface Put put_reset_csr     = toPut(reset_csr);
     endmodule
 
 endpackage

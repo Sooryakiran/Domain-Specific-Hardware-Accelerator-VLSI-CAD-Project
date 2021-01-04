@@ -1,10 +1,8 @@
 package Console;
-    import StmtFSM::*;
     import FIFOF::*;
     import SpecialFIFOs::*;
     import GetPut::*;
     import Connectable::*;
-
     import Bus::*;
 
     export Console (..);
@@ -46,7 +44,6 @@ package Console;
             if (x.control == Write)
             begin
                 Bit #(TAdd #(32, datalen)) data = extend(x.data);
-
                 if (x.present == 1)
                 begin
                     Int #(8) data_small = unpack(truncate(data));
@@ -75,17 +72,4 @@ package Console;
         interface Put put_data = toPut(in_data);
         interface Get get_data = toGet(out_data);
     endmodule
-
-
-
-
-    module test (Empty);
-        // Stmt lol = seq
-
-        // $display ("All tests done!");
-        // endseq;
-
-        // mkAutoFSM(lol);
-    endmodule
-
 endpackage

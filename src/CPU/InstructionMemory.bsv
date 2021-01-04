@@ -4,8 +4,6 @@ package InstructionMemory;
     import GetPut::*;
     import ClientServer::*;
 
-    // `include <config.bsv>
-    
     /*----------------------------------------------------------------------
                                 Typedefs
     -----------------------------------------------------------------------*/
@@ -24,7 +22,7 @@ package InstructionMemory;
                 fast.wset(memory.sub(addr));
             endaction
         endfunction
-
+        
         interface response  = toGet(fromMaybe(?, fast.wget()));
         interface request   = toPut(put_stuff);
     endmodule
