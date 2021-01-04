@@ -34,7 +34,10 @@ package VectorUnary;
                   Add #(nf, PresentSize #(vectordatasize, granularity), PresentSize #(busdatasize, granularity)),
                   Add #(ng, 8, vectordatasize),
                   Add #(nh, 16, vectordatasize),
-                  Add #(ni, 32, vectordatasize));
+                  Add #(ni, 32, vectordatasize),
+                  Add #(nj, 8,  busdatasize),
+                  Add #(nk, 16, busdatasize),
+                  Add #(nl, 32, busdatasize));
 
         VectorUnaryCSR #(datasize, busdatasize, busaddrsize, granularity) csr <- mkVectorUnaryCSR (address);
         BusMaster #(busdatasize, busaddrsize, granularity) bus_master_c <- mkBusMaster(id);

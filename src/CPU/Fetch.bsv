@@ -156,7 +156,7 @@ package Fetch;
             else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
                     x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
             begin
-                $display ("FETCH VEC");
+                // $display ("FETCH VEC");
                 
                 vec_send(check_load(x.src1), `VX_ADDRESS + 1);
                 vec_states <= 1;
@@ -197,7 +197,7 @@ package Fetch;
                             src2 : check_load(x.src2),  
                             aux  : check_load(x.aux),
                             dst  : ?}; 
-                $display ("END");
+                // $display ("END");
 
                 decoded.enq(current);
                 busy_vec <= False;
@@ -267,7 +267,7 @@ package Fetch;
                 else if (x.code == VEC_NEG_I8 || x.code == VEC_NEG_I16 || x.code == VEC_NEG_I32 || x.code == VEC_NEG_F32 ||
                          x.code == VEC_MIN_I8 || x.code == VEC_MIN_I16 || x.code == VEC_MIN_I32 || x.code == VEC_MIN_F32  )
                 begin
-                    $display ("FETCH VEC_NEG");
+                    // $display ("FETCH VEC_NEG");
                     
                     vec_send(check_load(x.src1), `VX_ADDRESS + 1);
                     vec_states <= 1;

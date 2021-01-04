@@ -44,17 +44,41 @@ package VectorExec;
                   Add #(nb, PresentSize #(vectordatasize, granularity), PresentSize #(busdatasize, granularity)),
                   Add #(nc, vectordatasize, busdatasize),
                   Add #(nd, 16, vectordatasize),
-                  Add #(ne, 32, vectordatasize));
+                  Add #(ne, 32, vectordatasize),
+                  Add #(nf, 8,  busdatasize),
+                  Add #(ng, 16, busdatasize),
+                  Add #(nh, 32, busdatasize));
         FIFOF #(BufferChunk #(datasize, vectordatasize, granularity)) decoded <- mkPipelineFIFOF;
         FIFOF #(WriteChunk #(busdatasize, busaddrsize, granularity)) to_mcu <-mkBypassFIFOF;
 
-        Integer num_vectorsize = valueOf (vectordatasize);
+        Integer num_vectorsize  = valueOf (vectordatasize);
         Integer num_granularity = valueOf (granularity);
-        Reg #(Bit #(datasize)) current_block <- mkReg(0);
 
-        Reg #(Int #(8)) mini8_state <- mkRegU;
-        Reg #(Int #(32)) mini8_p_index <- mkRegU;
-        Reg #(Bool) mini8_state_present <- mkReg(False);
+        Reg #(Bit #(datasize))  current_block       <- mkReg(0);
+
+        Reg #(Int #(8))         mini8_state         <- mkRegU;
+        Reg #(Int #(32))        mini8_p_index       <- mkRegU;
+        Reg #(Bool)             mini8_state_present <- mkReg(False);
+        Reg #(Bit #(datasize))  mini8_pindex_addr   <- mkRegU;
+        Reg #(Bool)             mini8_done          <- mkReg(False);
+
+        Reg #(Int #(16))        mini16_state         <- mkRegU;
+        Reg #(Int #(32))        mini16_p_index       <- mkRegU;
+        Reg #(Bool)             mini16_state_present <- mkReg(False);
+        Reg #(Bit #(datasize))  mini16_pindex_addr   <- mkRegU;
+        Reg #(Bool)             mini16_done          <- mkReg(False);
+
+        Reg #(Int #(32))        mini32_state         <- mkRegU;
+        Reg #(Int #(32))        mini32_p_index       <- mkRegU;
+        Reg #(Bool)             mini32_state_present <- mkReg(False);
+        Reg #(Bit #(datasize))  mini32_pindex_addr   <- mkRegU;
+        Reg #(Bool)             mini32_done          <- mkReg(False);
+
+        Reg #(Float)            minf32_state         <- mkRegU;
+        Reg #(Int #(32))        minf32_p_index       <- mkRegU;
+        Reg #(Bool)             minf32_state_present <- mkReg(False);
+        Reg #(Bit #(datasize))  minf32_pindex_addr   <- mkRegU;
+        Reg #(Bool)             minf32_done          <- mkReg(False);
 
         function negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
@@ -215,75 +239,325 @@ package VectorExec;
 
         function mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
-            // $display ("VEXEC ", fshow(x));
 			Bit #(vectordatasize) values = x.vector_data;
-            Int #(8) temp[num_vectorsize/8];
-            Int #(32) p_index[num_vectorsize/8];
-			
-			// Assign int
-            Int #(8) big_num = 127;
+            Int #(8)    temp[num_vectorsize/8];
+            Int #(32)   p_index[num_vectorsize/8];
+			Int #(8)    big_num = 127;
+            
 			for (Integer i =0; i < num_vectorsize/8; i = i +1 )
 			begin
-                if(fromInteger(i) < x.present) temp[i] = unpack(values[(i+1)*8-1:i*8]);
+                if (fromInteger(i*8/num_granularity) < x.present) temp[i] = unpack(values[(i+1)*8-1:i*8]);
                 else temp[i] = big_num;
-				
-                p_index[i] = fromInteger(i);
-                $display("ASSIGN %d", temp[i], p_index[i]);
-            
+                Int #(TAdd #(datasize, 32)) temp_val = fromInteger(i) + extend(unpack(current_block))*fromInteger(num_vectorsize/16);
+                p_index[i] = truncate(temp_val);
 			end
-			// is this correct?..im nt sure..
-			//Int#(8) mini_8 = temp[0];
+
 			Integer p = 0;
-			Integer t = num_vectorsize/8 ; 
+			Integer t = num_vectorsize/8; 
+
 			while(t>0)
             begin
                 Integer ind = 2**p; 
-                for(Integer i=0; i < num_vectorsize/8-ind; i=i+ind)
+                for(Integer i=0; i < num_vectorsize/8-ind; i=i+2*ind)
                     begin
                         p_index[i] = (temp[i] <= temp[i+ind])? p_index[i] : p_index[i+ind];
-                        temp[i] = min(temp[i], temp[i+ind]);
-                        i=i+ind;
+                        temp[i]    = min(temp[i], temp[i+ind]);
                     end 
                 t = t/2; 
-                p=p+1;
+                p = p+1;
             end
 
-            $display ("P_IND ", p_index[0]);
             if (mini8_state_present)
             begin
                 p_index[0] = (temp[0] < mini8_state)? p_index[0] : mini8_p_index;
                 temp[0] = min(temp[0], mini8_state);
-                
             end
-            mini8_state <= temp[0];
-            mini8_p_index <= p_index[0];
+            mini8_state     <= temp[0];
+            mini8_p_index   <= p_index[0];
 
             if (x.signal == Continue) 
             begin
-                current_block <= current_block + 1;
+                current_block       <= current_block + 1;
                 mini8_state_present <= True;
             end
             else 
             begin
-                // Reset and stuff
-                // TODO write to memory index and value
+                Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst);
+                WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Continue,
+                                                                            data : extend(pack(temp[0])),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(8/num_granularity)
+                                                                        };
+                to_mcu.enq(write_back);
+                mini8_pindex_addr   <= x.aux;
+                mini8_done          <= True;
                 mini8_state_present <= False;
-                current_block <= 0;
+                current_block       <= 0;
             end
             
-            
-            $display (temp[0], p_index[0]); 
             endaction
         endfunction
 
-        rule exec_master;
+        rule mini8_done_vec (mini8_done);
+            mini8_done <= False;
+            Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(mini8_pindex_addr);
+            WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Break,
+                                                                            data : extend(pack(mini8_p_index)),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+            to_mcu.enq(write_back);
+        endrule
+
+
+        function mini16 (BufferChunk #(datasize, vectordatasize, granularity) x);
+            action
+			Bit #(vectordatasize) values = x.vector_data;
+            Int #(16)    temp[num_vectorsize/16];
+            Int #(32)    p_index[num_vectorsize/16];
+			Int #(16)    big_num = 32767;
+            
+			for (Integer i =0; i < num_vectorsize/16; i = i +1 )
+			begin
+                if (fromInteger(i*16/num_granularity) < x.present) temp[i] = unpack(values[(i+1)*16-1:i*16]);
+                else temp[i] = big_num;
+                Int #(TAdd #(datasize, 32)) temp_val = fromInteger(i) + extend(unpack(current_block))*fromInteger(num_vectorsize/16);
+                p_index[i] = truncate(temp_val);
+			end
+
+			Integer p = 0;
+			Integer t = num_vectorsize/16; 
+
+			while(t>0)
+            begin
+                Integer ind = 2**p; 
+                for(Integer i=0; i < num_vectorsize/16-ind; i=i+2*ind)
+                    begin
+                        p_index[i] = (temp[i] <= temp[i+ind])? p_index[i] : p_index[i+ind];
+                        temp[i]    = min(temp[i], temp[i+ind]);
+                    end 
+                t = t/2; 
+                p = p+1;
+            end
+
+            if (mini16_state_present)
+            begin
+                p_index[0] = (temp[0] < mini16_state)? p_index[0] : mini16_p_index;
+                temp[0] = min(temp[0], mini16_state);
+            end
+            mini16_state     <= temp[0];
+            mini16_p_index   <= p_index[0];
+
+            if (x.signal == Continue) 
+            begin
+                current_block       <= current_block + 1;
+                mini16_state_present <= True;
+            end
+            else 
+            begin
+                Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst);
+                WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Continue,
+                                                                            data : extend(pack(temp[0])),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(16/num_granularity)
+                                                                        };
+                to_mcu.enq(write_back);
+                mini16_pindex_addr   <= x.aux;
+                mini16_done          <= True;
+                mini16_state_present <= False;
+                current_block        <= 0;
+            end
+            
+            endaction
+        endfunction
+
+        rule mini16_done_vec (mini16_done);
+            mini16_done <= False;
+            Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(mini16_pindex_addr);
+            WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Break,
+                                                                            data : extend(pack(mini16_p_index)),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+            to_mcu.enq(write_back);
+        endrule
+
+        function mini32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+            action
+			Bit #(vectordatasize) values = x.vector_data;
+            Int #(32)    temp[num_vectorsize/32];
+            Int #(32)    p_index[num_vectorsize/32];
+			Int #(32)    big_num = 2147483647;
+            
+			for (Integer i =0; i < num_vectorsize/32; i = i +1 )
+			begin
+                if (fromInteger(i*32/num_granularity) < x.present) temp[i] = unpack(values[(i+1)*32-1:i*32]);
+                else temp[i] = big_num;
+                Int #(TAdd #(datasize, 32)) temp_val = fromInteger(i) + extend(unpack(current_block))*fromInteger(num_vectorsize/32);
+                p_index[i] = truncate(temp_val);
+			end
+
+			Integer p = 0;
+			Integer t = num_vectorsize/32; 
+
+			while(t>0)
+            begin
+                Integer ind = 2**p; 
+                for(Integer i=0; i < num_vectorsize/32-ind; i=i+2*ind)
+                    begin
+                        p_index[i] = (temp[i] <= temp[i+ind])? p_index[i] : p_index[i+ind];
+                        temp[i]    = min(temp[i], temp[i+ind]);
+                    end 
+                t = t/2; 
+                p = p+1;
+            end
+
+            if (mini32_state_present)
+            begin
+                p_index[0] = (temp[0] < mini32_state)? p_index[0] : mini32_p_index;
+                temp[0] = min(temp[0], mini32_state);
+            end
+            mini32_state     <= temp[0];
+            mini32_p_index   <= p_index[0];
+
+            if (x.signal == Continue) 
+            begin
+                current_block       <= current_block + 1;
+                mini32_state_present <= True;
+            end
+            else 
+            begin
+                Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst);
+                WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Continue,
+                                                                            data : extend(pack(temp[0])),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+                to_mcu.enq(write_back);
+                mini32_pindex_addr   <= x.aux;
+                mini32_done          <= True;
+                mini32_state_present <= False;
+                current_block        <= 0;
+            end
+            
+            endaction
+        endfunction
+
+        rule mini32_done_vec (mini32_done);
+            mini32_done <= False;
+            Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(mini32_pindex_addr);
+            WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Break,
+                                                                            data : extend(pack(mini32_p_index)),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+            to_mcu.enq(write_back);
+        endrule
+
+        function minf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+            action
+			Bit #(vectordatasize) values = x.vector_data;
+            Float    temp[num_vectorsize/32];
+            Int #(32)    p_index[num_vectorsize/32];
+			Float    big_num = infinity(False);
+            
+			for (Integer i =0; i < num_vectorsize/32; i = i + 1 )
+			begin
+                Int #(TAdd #(datasize, 32)) temp_val = fromInteger(i) + extend(unpack(current_block))*fromInteger(num_vectorsize/32);
+                p_index[i] = truncate(temp_val);
+
+                if (fromInteger(i*32/num_granularity) < x.present) temp[i] = unpack(values[(i+1)*32-1:i*32]);
+                else  temp[i] = big_num;
+                
+			end
+
+			Integer p = 0;
+			Integer t = num_vectorsize/32; 
+
+			while(t>0)
+            begin
+                Integer ind = 2**p; 
+                for(Integer i=0; i < num_vectorsize/32-ind; i=i+2*ind)
+                    begin
+
+                        let c = compareFP(temp[i], temp[i+ind]);
+                        if (c == GT)
+                        begin
+                            temp[i] = temp[i+ind];
+                            p_index[i] = p_index[i+ind];
+                        end
+                       
+                    end 
+                t = t/2; 
+                p = p+1;
+            end
+
+            if (minf32_state_present)
+            begin
+                let c = compareFP (temp[0], minf32_state);
+                if (c == GT || c == EQ)
+                begin
+                    p_index[0] = minf32_p_index;
+                    temp[0] = minf32_state;
+                end
+            end
+
+            minf32_state     <= temp[0];
+            minf32_p_index   <= p_index[0];
+
+            if (x.signal == Continue) 
+            begin
+                current_block       <= current_block + 1;
+                minf32_state_present <= True;
+            end
+            else 
+            begin
+                Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst);
+                WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Continue,
+                                                                            data : extend(pack(temp[0])),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+                to_mcu.enq(write_back);
+                minf32_pindex_addr   <= x.aux;
+                minf32_done          <= True;
+                minf32_state_present <= False;
+                current_block        <= 0;
+            end
+            
+            endaction
+        endfunction
+
+        rule minf32_done_vec (minf32_done);
+            minf32_done <= False;
+            Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(minf32_pindex_addr);
+            WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
+                                                                            signal : Break,
+                                                                            data : extend(pack(minf32_p_index)),
+                                                                            addr : truncate(temp_address),
+                                                                            present : fromInteger(32/num_granularity)
+                                                                        };
+            to_mcu.enq(write_back);
+        endrule
+
+
+        rule exec_master ;
             let x = decoded.first(); decoded.deq();
-            // $display (fshow(x));
             if(x.code == VEC_NEG_I8)  negi8(x);
             if(x.code == VEC_NEG_I16) negi16(x);
             if(x.code == VEC_NEG_I32) negi32(x);
             if(x.code == VEC_NEG_F32) negf32(x);
-            if(x.code == VEC_MIN_I8) mini8(x);
+            if(x.code == VEC_MIN_I8)  mini8(x);
+            if(x.code == VEC_MIN_I16) mini16(x);
+            if(x.code == VEC_MIN_I32) mini32(x);
+            if(x.code == VEC_MIN_F32) minf32(x);
         endrule
 
         interface put_decoded = toPut (decoded);
