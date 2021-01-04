@@ -49,17 +49,17 @@ package Console;
 
                 if (x.present == 1)
                 begin
-                    Bit #(8) data_small = truncate(data);
+                    Int #(8) data_small = unpack(truncate(data));
                     $display ("CONSOLE %h | %d", data_small, data_small);
                 end
                 else if (x.present == 2)
                 begin
-                    Bit #(16) data_medium = truncate(data);
+                    Int #(16) data_medium = unpack(truncate(data));
                     $display ("CONSOLE %h | %d", data_medium, data_medium);
                 end
                 else if (x.present == 4)
                 begin
-                    Bit #(32) data_big = truncate(data);
+                    Int #(32) data_big = unpack(truncate(data));
                     $display ("CONSOLE %h | %d | %f", data_big, data_big, data_big);
                 end
             end
