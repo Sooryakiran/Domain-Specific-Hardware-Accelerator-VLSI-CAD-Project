@@ -69,15 +69,14 @@ package CPUDefines;
     } HeavyData #(numeric type wordlength, numeric type datalength) deriving(Bits);
 
     typedef struct {
-        Opcode code;                    // 5 bits
+        Opcode code;                  // 5 bits
         Bit #(datalength) src1;       // DATALEN
         Bit #(datalength) src2;       // DATALEN
         Bit #(datalength) aux;        // DATALEN
-        Regname dst;                    // 4 bits
-    }  DecodedInstruction #(numeric type datalength) deriving(Bits, FShow); // 9 + e TMul(`DATALEN, 3)
+        Regname dst;                  // 4 bits
+    }  DecodedInstruction #(numeric type datalength) deriving(Bits, FShow); 
 
     typedef TAdd #(9, TMul #(3, datalength)) DecodedInstructionSize #(numeric type datalength);
-    // `define DecodedInstructionSize TAdd #(TMul #(datalength, 3), 9)
 
     typedef struct {
         Bit #(datalength) data;

@@ -67,14 +67,10 @@ package VectorUnaryFetch;
 
         function Action bitfetch (Bit #(datasize) start, Bit #(datasize) blocksize, Bit #(datasize) dst, Integer n);
             action
-                // $display ("ADDRESS FETCH: ", start + current_block * fromInteger (n)/ fromInteger(num_granularity));
-                // $display (blocksize * fromInteger(n) /fromInteger(num_vectordatasize) + 1);
                 Bit #(datasize) next_block = current_block + fromInteger(num_vectordatasize/n);
-
                 if (next_block < blocksize)
                 begin
                     current_block <= next_block;
-
                     Bit #(TAdd #(busaddrsize, datasize)) temp_addr = extend(start + current_block * fromInteger (n)/fromInteger (num_granularity));
                     Bit #(busaddrsize) address = truncate(temp_addr);
                     Bit #(PresentSize #(busdatasize, granularity)) presence = fromInteger(num_vectordatasize/num_granularity);
@@ -83,8 +79,6 @@ package VectorUnaryFetch;
                                                                             present : presence
                                                                         };
                     read_requests.enq(r);
-
-                    // $display(fshow(r));
                 end
                 else
                 begin
@@ -92,7 +86,6 @@ package VectorUnaryFetch;
                     Bit #(busaddrsize) address = truncate(temp_addr);
                     Bit #(TAdd #(PresentSize #(busdatasize, granularity), datasize)) temp_presence = extend((fromInteger(num_vectordatasize/n) - next_block + blocksize)*fromInteger(n/num_granularity));
                     Bit #(PresentSize #(busdatasize, granularity)) presence = truncate(temp_presence);
-
 
                     AddrChunk #(busdatasize, busaddrsize, granularity) r = AddrChunk {
                                                                             addr : address,
@@ -103,11 +96,8 @@ package VectorUnaryFetch;
                     read_requests.enq(r);
                     instructions.deq();
                     is_busy <= True;
-                    // $display (fshow(r));
                 end
             endaction
-
-
         endfunction
 
         function Action bitdecode (DataChunk #(busdatasize, granularity) x, Integer n);
@@ -117,10 +107,7 @@ package VectorUnaryFetch;
                 
                 if (count_plus < y.blocksize)
                 begin
-                    // Normal enq
-                    // $display (x.present);
                     Bit #(PresentSize #(vectordatasize, granularity)) temp_present = truncate(x.present);
-                    // $display (temp_present);
                     BufferChunk #(datasize, vectordatasize, granularity) to_exec = BufferChunk {
                                                                                 signal : Continue,
                                                                                 code : y.code,
@@ -131,12 +118,9 @@ package VectorUnaryFetch;
                                                                                 };
                     decoded_instrutions.enq(to_exec);
                     block_count <= count_plus;
-                    // $display (fshow(to_exec));
                 end
                 else
                 begin
-                    // END enq
-
                     BufferChunk #(datasize, vectordatasize, granularity) to_exec = BufferChunk {
                                                                                 signal : Break,
                                                                                 code : y.code,
@@ -147,28 +131,21 @@ package VectorUnaryFetch;
                                                                                 };
                     
                     decoded_instrutions.enq(to_exec);
-                    // $display (fshow(to_exec));
                     block_count <= 0;
                     is_busy <= False;
-                    // Reset is_busy, block_count
                 end
-
-                // $display(count_plus, y.blocksize);
-
-                // block_count <= count_plus;
-
             endaction
         endfunction
 
+        (* descending_urgency = "decode, fetch_main" *)
         rule fetch_main (!is_busy);
             let x = instructions.first();
             current_instruction <= x;
-            // $display ("FROM FETCH ", fshow(x));
-            if (x.code == VEC_NEG_I8) bitfetch (x.src1, x.blocksize, x.dst, 8);
+            if (x.code == VEC_NEG_I8) bitfetch  (x.src1, x.blocksize, x.dst, 8);
             if (x.code == VEC_NEG_I16) bitfetch (x.src1, x.blocksize, x.dst, 16);
             if (x.code == VEC_NEG_I32) bitfetch (x.src1, x.blocksize, x.dst, 32);
             if (x.code == VEC_NEG_F32) bitfetch (x.src1, x.blocksize, x.dst, 32);
-            if (x.code == VEC_MIN_I8) bitfetch (x.src1, x.blocksize, x.dst, 8);
+            if (x.code == VEC_MIN_I8) bitfetch  (x.src1, x.blocksize, x.dst, 8);
             if (x.code == VEC_MIN_I16) bitfetch (x.src1, x.blocksize, x.dst, 16);
             if (x.code == VEC_MIN_I32) bitfetch (x.src1, x.blocksize, x.dst, 32);
             if (x.code == VEC_MIN_F32) bitfetch (x.src1, x.blocksize, x.dst, 32);
@@ -181,7 +158,6 @@ package VectorUnaryFetch;
             if (y.code == VEC_NEG_I16 || y.code == VEC_MIN_I16) bitdecode(x, 16);
             if (y.code == VEC_NEG_I32 || y.code == VEC_MIN_I32) bitdecode(x, 32);
             if (y.code == VEC_NEG_F32 || y.code == VEC_MIN_F32) bitdecode(x, 32);
-
         endrule
 
         interface Put put_instruction = toPut (instructions);

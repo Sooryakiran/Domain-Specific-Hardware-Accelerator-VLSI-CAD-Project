@@ -17,17 +17,10 @@ package Exec;
                      numeric type busdatalength,
                      numeric type busaddrlength,
                      numeric type granularity);
+
         interface Put #(Bit #(DecodedInstructionSize #(datalength))) put_decoded;  
-        
-
-        // Error 
-        // interface Get #(Bit #(SizeOf #(RegPackets #(datalength))))         send_computed_value;
-        
-        // Workaround
         interface Get #(Bit #(SizeRegPackets #(datalength)))         send_computed_value;
-        
         interface Get #(Bit #(datalength))                           get_branch;
-
         interface Put #(Chunk #(busdatalength, busaddrlength, granularity)) put_from_bus;
         interface Get #(Chunk #(busdatalength, busaddrlength, granularity)) get_to_bus;
 
@@ -37,14 +30,14 @@ package Exec;
                             Module Declarations
     -----------------------------------------------------------------------*/
     module mkExec (Exec #(datalength, busdatalength, busaddrlength, granularity))
-        provisos (Add# (na, 32, datalength),     // Datalength always >= 32
-                  Add# (nb, 32, busdatalength),  // Busdatalen >= 32
+        provisos (Add# (na, 32, datalength),     
+                  Add# (nb, 32, busdatalength),  
                   Add# (nc, 16, datalength),
                   Add# (nf, 16, busdatalength),
                   Add# (nd, 8,  datalength),
                   Add# (ne, 8,  busdatalength),
                   Add# (nh, 1,  busdatalength),
-                  Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)));    // Just to satisfy the compiler
+                  Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)));
 
         FIFOF #(Bit #(DecodedInstructionSize#(datalength))) incoming    <- mkBypassFIFOF;
         FIFOF #(RegPackets #(datalength))                   out_to_regs <- mkBypassFIFOF;
@@ -58,17 +51,14 @@ package Exec;
         FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_out <- mkBypassFIFOF;
         FIFOF #(Chunk #(busdatalength, busaddrlength, granularity)) bus_in  <- mkBypassFIFOF;
 
-
+        (* mutually_exclusive = "load_vec_status, load_from_bus" *)
         rule load_vec_status (wait_vec == True);
             let x = bus_in.first(); bus_in.deq();
             Bit #(1) useful_data = truncate(x.data);
             if (useful_data == 1)
             begin
                 incoming.deq();
-                // $display ("CPU: Vector Op completed");
             end
-            // else $display ("Failed for success");
-
             wait_vec <= False;
         endrule
 
@@ -76,7 +66,6 @@ package Exec;
             let x = bus_in.first(); bus_in.deq();
             let p = x.present;
             
-            // Bit #(datalength) value;
             if (p == 1)
             begin
                 // Load 8
@@ -110,9 +99,6 @@ package Exec;
                     register    : wait_reg};
                 out_to_regs.enq(packet);
             end
-
-            // $display ("CPU LOADED ", fshow(x));
-
             wait_load <= False;
             incoming.deq();
         endrule
@@ -296,13 +282,11 @@ package Exec;
             endaction
         endfunction
 
-        function Action load (Bit #(datalength) addr, Regname dst, Bit #(PresentSize #(busdatalength, granularity)) p);
+        function Action load (Bit #(datalength) addr, 
+                              Regname dst, 
+                              Bit #(PresentSize #(busdatalength, granularity)) p);
             action
-            
-            // Bit #(64) address = extend(addr);
-            // $display ("Load, ", p);
             Bit #(TAdd #(datalength, busaddrlength)) address = extend(addr);
-            // Bit #(TAdd#(TMax#(datalength, busaddrlength), 1)) address = extend(addr);
             Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                         control : Read,
                                                                         data : ?,
@@ -315,7 +299,10 @@ package Exec;
             endaction
         endfunction
 
-        function store (Bit #(datalength) data, Bit #(datalength) addr, Regname dst, Bit #(PresentSize #(busdatalength, granularity)) p);
+        function Action store (Bit #(datalength) data, 
+                               Bit #(datalength) addr, 
+                               Regname dst, 
+                               Bit #(PresentSize #(busdatalength, granularity)) p);
             action
 
             
@@ -330,18 +317,15 @@ package Exec;
                                                                     };
             bus_out.enq(x);
             incoming.deq();
-
-            // $display ("CPU STORE ", fshow(x));
             endaction
         endfunction
 
-        function vec (Bit #(datalength) src, Bit #(datalength) blocksize, Bit #(datalength) dst);
+        function Action vec (Bit #(datalength) src, 
+                             Bit #(datalength) blocksize, 
+                             Bit #(datalength) dst);
             action
-                // $display ("Vec Neg", wait_count, " | ", blocksize);
                 if (wait_count > blocksize)
                 begin
-                    // Bit #(TAdd #(datalength, busaddrlength)) address = ;
-                    // Bit #(TAdd#(TMax#(datalength, busaddrlength), 1)) address = extend(addr);
                     Chunk #(busdatalength, busaddrlength, granularity) x = Chunk {
                                                                                 control : Read,
                                                                                 data : ?,
@@ -351,7 +335,6 @@ package Exec;
                     bus_out.enq(x);
                     wait_count <= 0;
                     wait_vec <= True;
-                    // $display (debug_clk, "CPU : Sent");
                 end
                 else wait_count <= wait_count + 1;
                 
@@ -360,7 +343,6 @@ package Exec;
         
         rule exec_master (!wait_load && !wait_store && !wait_vec);
             DecodedInstruction #(datalength) x = unpack(incoming.first);
-            // $display (debug_clk, ":", fshow(x));
             if (x.code == NOP)      incoming.deq();
             if (x.code == MOV)      mov     (x.src1, x.dst);
             if (x.code == ADD_I8)   addi8   (x.src1, x.src2, x.dst);
@@ -380,26 +362,20 @@ package Exec;
             if (x.code == STORE_8)  store   (x.src1, x.src2, x.dst, 1);
             if (x.code == STORE_16) store   (x.src1, x.src2, x.dst, 2);
             if (x.code == STORE_32) store   (x.src1, x.src2, x.dst, 4);
-            if (x.code == VEC_NEG_I8) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_I16) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_I32) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_NEG_F32) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_MIN_I8) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_MIN_I16) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_MIN_I32) vec (x.src1, x.src2, x.aux);
-            if (x.code == VEC_MIN_F32) vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I8)   vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I16)  vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_I32)  vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_NEG_F32)  vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I8)   vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I16)  vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_I32)  vec (x.src1, x.src2, x.aux);
+            if (x.code == VEC_MIN_F32)  vec (x.src1, x.src2, x.aux);
     
         endrule
 
-        // rule debug;
-        //     debug_clk <= debug_clk + 1;
-        //     $display (debug_clk, " CPU_CLOCK");
-        //     // if(debug_clk>50) $finish();
-        // endrule 
-
         interface Get get_branch            = toGet(branch);
         interface Put put_decoded           = toPut(incoming);
-        interface Get send_computed_value   = toGet(send_back_to_regs()); // sayooj is
+        interface Get send_computed_value   = toGet(send_back_to_regs()); 
         interface Put put_from_bus          = toPut(bus_in);
         interface Get get_to_bus            = toGet(bus_out);
     endmodule

@@ -1,6 +1,4 @@
 package DRAMSlave;
-    import StmtFSM::*;
-
     import DRAMCore::*;
     import Bus::*;
     import FIFOF::*;
@@ -76,7 +74,6 @@ package DRAMSlave;
     /*----------------------------------------------------------------------
                                 Modules
     -----------------------------------------------------------------------*/
-
     module [Module] mkDRAMWrapper #(Integer id) (DRAMWrapper #(blocksize,
                                                               size, 
                                                               offset, 
@@ -103,17 +100,11 @@ package DRAMSlave;
 
         Reg #(Bit #(datasize)) temporary_data <- mkRegU;
         Reg #(Chunk #(datasize, addrsize, blocksize)) read_chunk <- mkRegU;
-        
-        // rule debug;
-        //     $display ("--", data[24][0]);
-        // endrule
 
         rule check_requests (!(reading || writing));
             let x = requests.first(); requests.deq();
             if (x.control == Read)
             begin
-                // $display ("DRAM LOAD", num_ports, " ", x.present);
-
                 Bit #(datasize) wires[num_ports + 1];
                 wires[0] = 0;
 
@@ -130,8 +121,6 @@ package DRAMSlave;
                         wires[i+1] = (wires[i]) +
                                      (truncate(temp_wire) << 
                                       num_block_size * fromInteger(i));
-                        
-                        // $display(i, " HI ",  address, " ",  data[address][i]);
                     end
                     else 
                     begin
@@ -139,8 +128,6 @@ package DRAMSlave;
                     end
 
                 end
-                // $display("DRAM ",  wires[num_ports]);
-                
                 Chunk #(datasize,
                         addrsize, 
                         blocksize) write_done = Chunk {
@@ -152,7 +139,6 @@ package DRAMSlave;
             end
             else if (x.control == Write)
             begin
-                // $display ("DRAM STORE");
                 for (Integer i = 0; i < num_ports; i = i + 1)
                 begin
                     
@@ -162,10 +148,10 @@ package DRAMSlave;
                                                   x.addr - 
                                                   fromInteger(num_offset);
                         
-                        Bit #(blocksize) curr_data = unpack(x.data[fromInteger(i+1) * fromInteger(num_block_size) - 1 : fromInteger(i) * fromInteger(num_block_size)]);
+                        Bit #(blocksize) curr_data = unpack(x.data[fromInteger(i+1) * 
+                                                            fromInteger(num_block_size) - 1 : 
+                                                            fromInteger(i) * fromInteger(num_block_size)]);
                         data[address][i] <= unpack(curr_data);
-                        // $display(i, address, curr_data);
-
                     end
                 end
 
@@ -182,7 +168,6 @@ package DRAMSlave;
 
         interface get_responses = toGet (responses);
         interface put_requests  = toPut (requests);
-        
     endmodule
 
     module [Module] mkDRAMSlave #(Integer id) (DRAMSlave #(blocksize, 
@@ -191,12 +176,8 @@ package DRAMSlave;
                                                           datasize, 
                                                           addrsize, 
                                                           ports));
-        // provisos (Arith #(block), Bits #(block, block_sz));
-
-        
         Bit #(addrsize) lower_bound = fromInteger(valueOf(offset));
         Bit #(addrsize) upper_bound = fromInteger(valueOf(offset) + valueOf(size));
-        // Integer num_offset = valueOf(offset);
         DRAMWrapper #(blocksize,
                       size, 
                       offset, 
@@ -209,22 +190,7 @@ package DRAMSlave;
                    blocksize) slave_ifc <- mkBusSlave(lower_bound,
                                                             upper_bound,
                                                             id);
-
         mkConnection (wrap, slave_ifc); 
-
         interface dram_slave = slave_ifc;
-    
-    endmodule
-
-
-    module [Module] test (Empty);
-
-        DRAMSlave #(8, 64, 0, 32, 20, 4) my_slave <- mkDRAMSlave(0);
-        
-        Stmt lol = seq
-        $display("All tests done!");
-        endseq;
-
-        mkAutoFSM(lol);
     endmodule
 endpackage

@@ -6,7 +6,6 @@ package VectorExec;
     import FloatingPoint::*;
 
     import Bus::*;
-
     import VectorDefines::*;
     import VectorUnaryFetch::*;
     import VectorMemoryController::*;
@@ -54,50 +53,43 @@ package VectorExec;
         Integer num_vectorsize  = valueOf (vectordatasize);
         Integer num_granularity = valueOf (granularity);
 
-        Reg #(Bit #(datasize))  current_block       <- mkReg(0);
-
-        Reg #(Int #(8))         mini8_state         <- mkRegU;
-        Reg #(Int #(32))        mini8_p_index       <- mkRegU;
-        Reg #(Bool)             mini8_state_present <- mkReg(False);
-        Reg #(Bit #(datasize))  mini8_pindex_addr   <- mkRegU;
-        Reg #(Bool)             mini8_done          <- mkReg(False);
-
+        Reg #(Bit #(datasize))  current_block        <- mkReg(0);
+        Reg #(Int #(8))         mini8_state          <- mkRegU;
+        Reg #(Int #(32))        mini8_p_index        <- mkRegU;
+        Reg #(Bool)             mini8_state_present  <- mkReg(False);
+        Reg #(Bit #(datasize))  mini8_pindex_addr    <- mkRegU;
+        Reg #(Bool)             mini8_done           <- mkReg(False);
         Reg #(Int #(16))        mini16_state         <- mkRegU;
         Reg #(Int #(32))        mini16_p_index       <- mkRegU;
         Reg #(Bool)             mini16_state_present <- mkReg(False);
         Reg #(Bit #(datasize))  mini16_pindex_addr   <- mkRegU;
         Reg #(Bool)             mini16_done          <- mkReg(False);
-
         Reg #(Int #(32))        mini32_state         <- mkRegU;
         Reg #(Int #(32))        mini32_p_index       <- mkRegU;
         Reg #(Bool)             mini32_state_present <- mkReg(False);
         Reg #(Bit #(datasize))  mini32_pindex_addr   <- mkRegU;
         Reg #(Bool)             mini32_done          <- mkReg(False);
-
         Reg #(Float)            minf32_state         <- mkRegU;
         Reg #(Int #(32))        minf32_p_index       <- mkRegU;
         Reg #(Bool)             minf32_state_present <- mkReg(False);
         Reg #(Bit #(datasize))  minf32_pindex_addr   <- mkRegU;
         Reg #(Bool)             minf32_done          <- mkReg(False);
 
-        function negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action negi8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/8];
-
-                Int #(8) slice_curr = -unpack(values[7 : 0]);
+                Int #(8) slice_curr          = -unpack(values[7 : 0]);
                 outs[0] = extend(pack(slice_curr));
 
                 // This wil get unrolled yaay!
                 for (Integer i=8; i < num_vectorsize; i = i + 8)
                 begin
                     Int #(8) slice = -unpack(values[i+7 : i]);
-                    outs[i/8] = outs[i/8 - 1] + (extend(pack(slice)) << i);
+                    outs[i/8]      = outs[i/8 - 1] + (extend(pack(slice)) << i);
                 end
 
                 Bit #(busdatasize) outputs = extend(outs[num_vectorsize/8 -1]);
-                
-                
                 Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst + current_block * fromInteger(num_vectorsize/num_granularity));
                 WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
                                                                             signal : x.signal,
@@ -108,20 +100,16 @@ package VectorExec;
                 if (x.signal == Continue) current_block <= current_block + 1;
                 else 
                 begin
-                    // Reset and stuff
                     current_block <= 0;
                 end
                 to_mcu.enq(write_back);
-                // $display (fshow(write_back));
             endaction
         endfunction
 
-        function negi16 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action negi16 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
-                // $display ("hey");
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/16];
-
                 Int #(16) slice_curr = -unpack(values[15 : 0]);
                 outs[0] = extend(pack(slice_curr));
 
@@ -133,8 +121,6 @@ package VectorExec;
                 end
 
                 Bit #(busdatasize) outputs = extend(outs[num_vectorsize/16 -1]);
-                
-                
                 Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst + current_block * fromInteger(num_vectorsize/num_granularity));
                 WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
                                                                             signal : x.signal,
@@ -145,26 +131,19 @@ package VectorExec;
                 if (x.signal == Continue) current_block <= current_block + 1;
                 else 
                 begin
-                    // Reset and stuff
                     current_block <= 0;
-                    // TODO reset csr
                 end
                 to_mcu.enq(write_back);
-                // $display (fshow(write_back));
             endaction
         endfunction
 
-        function negi32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action negi32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
-                // $display ("hey");
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/32];
-
                 Int #(32) slice_curr = -unpack(values[31 : 0]);
                 outs[0] = extend(pack(slice_curr));
 
-                // This wil get unrolled yaay!
-                // $display ("INP %b", values);
                 for (Integer i=32; i < num_vectorsize; i = i + 32)
                 begin
                     Int #(32) slice = -unpack(values[i+31 : i]);
@@ -172,8 +151,6 @@ package VectorExec;
                 end
 
                 Bit #(busdatasize) outputs = extend(outs[num_vectorsize/32 -1]);
-                
-                
                 Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst + current_block * fromInteger(num_vectorsize/num_granularity));
                 WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
                                                                             signal : x.signal,
@@ -184,20 +161,14 @@ package VectorExec;
                 if (x.signal == Continue) current_block <= current_block + 1;
                 else 
                 begin
-                    // Reset and stuff
                     current_block <= 0;
-                    // TODO reset csr
                 end
-
-                // $display ("OUT %b", outputs);
                 to_mcu.enq(write_back);
-                // $display (fshow(write_back));
             endaction
         endfunction
 
-        function negf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action negf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
-                // $display ("hey");
 
                 Bit #(vectordatasize) values = x.vector_data;
                 Bit #(vectordatasize) outs[num_vectorsize/32];
@@ -205,8 +176,6 @@ package VectorExec;
                 Float slice_curr = -unpack(values[31 : 0]);
                 outs[0] = extend(pack(slice_curr));
 
-                // This wil get unrolled yaay!
-                // $display ("INP %b", values);
                 for (Integer i=32; i < num_vectorsize; i = i + 32)
                 begin
                     Float slice = -unpack(values[i+31 : i]);
@@ -214,8 +183,6 @@ package VectorExec;
                 end
 
                 Bit #(busdatasize) outputs = extend(outs[num_vectorsize/32 -1]);
-                
-                
                 Bit #(TAdd #(busaddrsize, datasize)) temp_address = extend(x.dst + current_block * fromInteger(num_vectorsize/num_granularity));
                 WriteChunk #(busdatasize, busaddrsize, granularity) write_back = WriteChunk {
                                                                             signal : x.signal,
@@ -226,18 +193,13 @@ package VectorExec;
                 if (x.signal == Continue) current_block <= current_block + 1;
                 else 
                 begin
-                    // Reset and stuff
                     current_block <= 0;
-                    // TODO reset csr
                 end
-
-                // $display ("OUT %b", outputs);
                 to_mcu.enq(write_back);
-                // $display (fshow(write_back));
             endaction
         endfunction
 
-        function mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action mini8 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
 			Bit #(vectordatasize) values = x.vector_data;
             Int #(8)    temp[num_vectorsize/8];
@@ -312,7 +274,7 @@ package VectorExec;
         endrule
 
 
-        function mini16 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action mini16 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
 			Bit #(vectordatasize) values = x.vector_data;
             Int #(16)    temp[num_vectorsize/16];
@@ -386,7 +348,7 @@ package VectorExec;
             to_mcu.enq(write_back);
         endrule
 
-        function mini32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action mini32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
 			Bit #(vectordatasize) values = x.vector_data;
             Int #(32)    temp[num_vectorsize/32];
@@ -460,7 +422,7 @@ package VectorExec;
             to_mcu.enq(write_back);
         endrule
 
-        function minf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
+        function Action minf32 (BufferChunk #(datasize, vectordatasize, granularity) x);
             action
 			Bit #(vectordatasize) values = x.vector_data;
             Float    temp[num_vectorsize/32];
@@ -476,23 +438,19 @@ package VectorExec;
                 else  temp[i] = big_num;
                 
 			end
-
 			Integer p = 0;
 			Integer t = num_vectorsize/32; 
-
 			while(t>0)
             begin
                 Integer ind = 2**p; 
                 for(Integer i=0; i < num_vectorsize/32-ind; i=i+2*ind)
                     begin
-
                         let c = compareFP(temp[i], temp[i+ind]);
                         if (c == GT)
                         begin
                             temp[i] = temp[i+ind];
                             p_index[i] = p_index[i+ind];
                         end
-                       
                     end 
                 t = t/2; 
                 p = p+1;
@@ -510,7 +468,6 @@ package VectorExec;
 
             minf32_state     <= temp[0];
             minf32_p_index   <= p_index[0];
-
             if (x.signal == Continue) 
             begin
                 current_block       <= current_block + 1;
@@ -559,9 +516,7 @@ package VectorExec;
             if(x.code == VEC_MIN_I32) mini32(x);
             if(x.code == VEC_MIN_F32) minf32(x);
         endrule
-
         interface put_decoded = toPut (decoded);
         interface get_to_mcu = toGet(to_mcu);
     endmodule
-
 endpackage

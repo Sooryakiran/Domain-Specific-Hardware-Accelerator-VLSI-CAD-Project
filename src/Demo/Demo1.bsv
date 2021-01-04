@@ -54,9 +54,6 @@ package Demo1;
 
         mkConnection (master_vec, bus);
         mkConnection (slave_vec, bus);
-        
-
-
         Reg #(Bit #(32)) debug_clk <- mkReg(0);
 
         rule debug;

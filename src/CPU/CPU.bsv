@@ -1,13 +1,10 @@
 package CPU;
-
-    import StmtFSM::*;
     import FIFOF::*;
     import SpecialFIFOs::*;
     import GetPut::*;
     import Vector::*;
     import ClientServer::*;
     import Connectable::*;
-
 
     import CPUDefines::*;
     import InstructionMemory::*;
@@ -17,9 +14,8 @@ package CPU;
 
     export CPU (..);
     export mkCPU;
-
-    `include <testparams.bsv>
-
+    export Exec::*;
+    export Fetch::*;
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
@@ -90,8 +86,8 @@ package CPU;
                                                       busaddrlength, 
                                                       granularity))
 
-        provisos (Add# (na, 32, datalength),     // Datalength always >= 32
-                  Add# (nb, 32, busdatalength),  // Busdatalen >= 32
+        provisos (Add# (na, 32, datalength), 
+                  Add# (nb, 32, busdatalength), 
                   Add# (nc, 16, datalength),
                   Add# (nf, 16, busdatalength),
                   Add# (nd, 8,  datalength),
@@ -100,7 +96,7 @@ package CPU;
                   Add# (ni, 1,  busdatalength),
                   Add# (ng, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)),
                   Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
-                  Add# (n_, 16, TAdd#(wordlength, datalength)));    // Just to satisfy the compiler
+                  Add# (n_, 16, TAdd#(wordlength, datalength)));
 
         Exec        #(datalength, 
                      busdatalength, 
