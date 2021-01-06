@@ -12,14 +12,14 @@ package Demo2;
 
     `define WORD_LENGTH 64
     `define DATA_LENGTH 32
-    `define BUS_DATA_LEN 64 // When chamging bus width, remember to increase memory ports 
+    `define BUS_DATA_LEN 128 // When chamging bus width, remember to increase memory ports 
     `define ADDR_LENGTH 20
     `define VECTOR_DATA_SIZE `BUS_DATA_LEN
     `define VX_STORAGE_SIZE 2
 
-    `define GRANULARITY 8   // Smallest addressible unit
-    `define RAM_BYTES 64    // Ram size (number of addressible units)
-    `define RAM_PORTS 8     // 4 ports, 1 byte per port for 32 bits
+    `define GRANULARITY 8    // Smallest addressible unit
+    `define RAM_BYTES 64     // Ram size (number of addressible units)
+    `define RAM_PORTS 16     // 16 ports, 1 byte per port for 128 bit bus
     `define RAM_ADDRESS_OFFSET 1024
 
     `define CONSOLE_ADDRESS 128
@@ -72,7 +72,7 @@ package Demo2;
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if (debug_clk > 500) $finish();
+            if (debug_clk > 2048) $finish();
         endrule
 
         

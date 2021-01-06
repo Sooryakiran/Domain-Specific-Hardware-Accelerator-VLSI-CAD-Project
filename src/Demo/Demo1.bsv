@@ -7,29 +7,32 @@ package Demo1;
     import Bus::*;
     import Console::*;
 
-    `define WORD_LENGTH 64
-    `define DATA_LENGTH 32
-    `define BUS_DATA_LEN 32
-    `define ADDR_LENGTH 20
+    `define WORD_LENGTH 64  // We are making a 64 bit machine
+    `define DATA_LENGTH 32  // The data size of our machine
+    `define BUS_DATA_LEN 32 // Data bus width
+    `define ADDR_LENGTH 20  // Addr bus width
 
-    `define GRANULARITY 8   // Smallest addressible unit
+    `define GRANULARITY 8   // Smallest addressible unit (1 Byte at every address)
     `define RAM_BYTES 64    // Ram size (number of addressible units)
-    `define RAM_PORTS 4     // 4 ports, 1 byte per port for 32 bits
-    `define RAM_ADDRESS_OFFSET 1000
+    `define RAM_PORTS 4     // 4 ports, 4 x 8 for 32 bit bus
 
-    `define CONSOLE_ADDRESS 23
+    `define RAM_ADDRESS_OFFSET 1000 // Address of the RAM
+    `define CONSOLE_ADDRESS 128     // Address of the Console
+
     module mkDemo (Empty);
         CPU #(`WORD_LENGTH,
               `DATA_LENGTH, 
               `BUS_DATA_LEN, 
               `ADDR_LENGTH, 
-              `GRANULARITY) my_core <- mkCPU(1, "../asm/random");
+              `GRANULARITY) 
+              my_core <- mkCPU(1, "../asm/fibonacci");
         
         DRAMSlave #(`GRANULARITY, 
                     `RAM_BYTES, 
                     `RAM_ADDRESS_OFFSET, 
                     `BUS_DATA_LEN, 
-                    `ADDR_LENGTH, 4) my_slave <- mkDRAMSlave(0);
+                    `ADDR_LENGTH, 
+                    `RAM_PORTS) my_dram <- mkDRAMSlave(0);
 
         Console #(`BUS_DATA_LEN,
                   `ADDR_LENGTH,
@@ -45,7 +48,7 @@ package Demo1;
 
 
         master_vec[0] = my_core.bus_master;
-        slave_vec[0]  = my_slave.dram_slave;
+        slave_vec[0]  = my_dram.dram_slave;
         slave_vec[1]  = my_console.bus_slave;
 
         Bus #(1, 2, `BUS_DATA_LEN, 
@@ -58,7 +61,7 @@ package Demo1;
 
         rule debug;
             debug_clk <= debug_clk + 1;
-            if (debug_clk > 50) $finish();
+            if (debug_clk > 1024) $finish();
         endrule
 
         
