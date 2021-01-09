@@ -1,5 +1,5 @@
 NOP ; Load Vectors to ram
-ASG_8 R1 13     ; Value
+label_1: ASG_8 R1 13     ; Value
 ASG_32 R2 1024   ; Address
 STORE_8 R1 R2
 ASG_8 R1 14     

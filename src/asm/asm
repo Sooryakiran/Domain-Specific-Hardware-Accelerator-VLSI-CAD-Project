@@ -158,6 +158,8 @@ def vecmin(line):
 def main(file_name):
     # file_name = sys.argv[1]
     outs = []
+    current_line = 0
+    labels = {}
     with open(file_name) as f:
         lines = f.readlines()
         i = 0
@@ -165,9 +167,21 @@ def main(file_name):
             i+=1
             try:
                 if True:
+                    if ":" in line:
+                        parts = line.split(":")
+                        label = parts[0]
+                        labels[label] = current_line
+                        line = parts[1]
                     tokens = line.split()
                     op = tokens[0]
 
+                    if "$" in line:
+                        part_1 = line.split()
+                        for part in part_1:
+                            if "$" in part:
+                                replace = str(labels[part.split("$")[1]])
+                                line = line.replace(part, replace)
+                                
                     if op == "NOP":
                         outs.append(opnop())
                     elif op == "ASG_8":
@@ -199,8 +213,12 @@ def main(file_name):
                     elif op == "VEC_MIN_I8" or op == "VEC_MIN_I16" or op == "VEC_MIN_I32" or op == "VEC_MIN_F32":
                         outs.append(vecmin(line))
                     else:
-                        # pass
                         raise(ValueError)
+                    
+                    if op == "ASG_32" and WORD_LENGTH < 64:
+                        current_line += 2
+                    else:
+                        current_line += 1
             except:      
                 print("[ERROR] Error on line", i, ":", line)
                 exit()
