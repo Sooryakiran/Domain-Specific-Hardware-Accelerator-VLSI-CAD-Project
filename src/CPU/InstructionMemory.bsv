@@ -1,32 +1,43 @@
+////////////////////////////////////////////////////////////////////////////////
+//  Author        : Sooryakiran, Ashwini, Shailesh
+//  Description   : The Instruction Memory
+////////////////////////////////////////////////////////////////////////////////
+
 package InstructionMemory;
 
-    import RegFile::*;
-    import GetPut::*;
-    import ClientServer::*;
+////////////////////////////////////////////////////////////////////////////////
+/// Imports
+////////////////////////////////////////////////////////////////////////////////
 
-    /*----------------------------------------------------------------------
-                                Typedefs
-    -----------------------------------------------------------------------*/
-    typedef Server #(Bit #(wordlength), Bit #(wordlength)) Imem #(numeric type wordlength);
+import RegFile::*;
+import GetPut::*;
+import ClientServer::*;
 
-    /*----------------------------------------------------------------------
-                            Module Declarations
-    -----------------------------------------------------------------------*/
+////////////////////////////////////////////////////////////////////////////////
+/// Types
+////////////////////////////////////////////////////////////////////////////////
 
-    module mkImem #(String rom) (Imem #(wordlength));
-        RegFile #(Bit #(wordlength), Bit #(wordlength)) memory  <- mkRegFileFullLoad(rom);
-        RWire   #(Bit #(wordlength))                  fast    <- mkRWire();
+typedef Server #(Bit #(wordlength), Bit #(wordlength)) Imem #(numeric type wordlength);
 
-        function Action put_stuff (Bit #(wordlength) addr);
-            action
-                fast.wset(memory.sub(addr));
-            endaction
-        endfunction
-        
-        interface response  = toGet(fromMaybe(?, fast.wget()));
-        interface request   = toPut(put_stuff);
-    endmodule
+////////////////////////////////////////////////////////////////////////////////
+/// Modules
+////////////////////////////////////////////////////////////////////////////////
 
+// Creates the instruction memory
+// Param rom : String path pointing to the init file
+module mkImem #(String rom) (Imem #(wordlength));
+    RegFile #(Bit #(wordlength), Bit #(wordlength)) memory  <- mkRegFileFullLoad(rom);
+    RWire   #(Bit #(wordlength))                  fast    <- mkRWire();
 
+    // Send back the instruction requested
+    function Action put_stuff (Bit #(wordlength) addr);
+        action
+            fast.wset(memory.sub(addr));
+        endaction
+    endfunction
+    
+    interface response  = toGet(fromMaybe(?, fast.wget()));
+    interface request   = toPut(put_stuff);
+endmodule
 
 endpackage : InstructionMemory
