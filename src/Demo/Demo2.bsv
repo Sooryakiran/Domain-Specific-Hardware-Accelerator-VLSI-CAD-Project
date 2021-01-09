@@ -8,16 +8,16 @@ package Demo2;
     import Console::*;
     import VectorUnary::*;
 
-    `include <VX_Address.bsv>
+    `include <VX_Address.bsv> // Location where Accelerator is memory mapped
 
-    `define WORD_LENGTH 64
+    `define WORD_LENGTH 32   // Here we are generating a 32 bit CPU
     `define DATA_LENGTH 32
     `define BUS_DATA_LEN 128 // When chamging bus width, remember to increase memory ports 
     `define ADDR_LENGTH 20
     `define VECTOR_DATA_SIZE `BUS_DATA_LEN
     `define VX_STORAGE_SIZE 2
 
-    `define GRANULARITY 8    // Smallest addressible unit
+    `define GRANULARITY 8    // Smallest addressible unit (1 byte)
     `define RAM_BYTES 64     // Ram size (number of addressible units)
     `define RAM_PORTS 16     // 16 ports, 1 byte per port for 128 bit bus
     `define RAM_ADDRESS_OFFSET 1024

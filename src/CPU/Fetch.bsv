@@ -1,4 +1,12 @@
 package Fetch;
+    /*----------------------------------------------------------------------
+                                    CPU FETCH
+                                    =========
+    This file includes the implementation for the fetch and decode stage of 
+    our 2 stage pipelined inorder CPU.
+
+    -----------------------------------------------------------------------*/
+
     import FIFOF::*;
     import SpecialFIFOs::*;
     import GetPut::*;
@@ -11,6 +19,7 @@ package Fetch;
     /*----------------------------------------------------------------------
                                 Interfaces
     -----------------------------------------------------------------------*/
+
     interface Registers #(numeric type datalength);
         method Bit #(datalength) load  (Regname name);
         method Action            store (Bit #(datalength) data, Regname name);
@@ -52,18 +61,18 @@ package Fetch;
         FIFOF #(Instruction #(wordlength)) instructions   <- mkBypassFIFOF;
         FIFOF #(DecodedInstruction #(datalength)) decoded <- mkPipelineFIFOF;
 
-        Reg #(Bit #(wordlength)) pc         <- mkReg(0);
-        Reg #(Bit #(32)) debug_clk          <- mkReg(0);
-        Reg #(Bit #(1)) wait_for_next_half  <- mkReg(0);
+        Reg #(Bit #(wordlength)) pc          <- mkReg(0);
+        Reg #(Bit #(32)) debug_clk           <- mkReg(0);
+        Reg #(Bit #(1)) wait_for_next_half   <- mkReg(0);
 
-        Reg #(Bool) busy_vec                <- mkReg(False);
-        Reg #(Bit #(4)) vec_states          <- mkRegU;
-        Reg #(Bit #(datalength)) vec_address       <- mkRegU;
-        Reg #(Regname) waiting_address      <- mkRegU;
-        Reg #(Regname) future               <- mkReg(NO);
-        Registers #(datalength) regs        <- mkRegisters;
-        PulseWire got_instruction           <- mkPulseWire();
-        PulseWire wait_instruction          <- mkPulseWire();
+        Reg #(Bool) busy_vec                 <- mkReg(False);
+        Reg #(Bit #(4)) vec_states           <- mkRegU;
+        Reg #(Bit #(datalength)) vec_address <- mkRegU;
+        Reg #(Regname) waiting_address       <- mkRegU;
+        Reg #(Regname) future                <- mkReg(NO);
+        Registers #(datalength) regs         <- mkRegisters;
+        PulseWire got_instruction            <- mkPulseWire();
+        PulseWire wait_instruction           <- mkPulseWire();
 
         RWire #(RegPackets #(datalength)) store_from_exec     <- mkRWire();
         RWire #(RegPackets #(datalength)) store_from_fetch    <- mkRWire();
