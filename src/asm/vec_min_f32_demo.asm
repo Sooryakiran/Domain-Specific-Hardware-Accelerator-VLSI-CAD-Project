@@ -1,3 +1,4 @@
+NOP                  ; Store Array [13.0, 12.1, 11.8, -13.9, 15.8]
 ASG_32 R3 128        ; Console address
 ASG_32 R1 13.0       ; Value
 ASG_32 R2 1024       ; Address
