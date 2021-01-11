@@ -1,0 +1,39 @@
+% command for centering section headings
+\newcommand{\centerheading}[1]{   
+    \hspace*{\fill}#1{\hspace*{\fill}}
+}
+
+% Remove "Part #." from \part titles
+% KOMA default: \newcommand*{\partformat}{\partname~\thepart\autodot}
+\renewcommand*{\partformat}{}
+
+\renewcommand*{\sectionformat}{
+\makebox[0pt][r]{\thesection\autodot\enskip}}
+
+% \renewcommand*{\chapterformat}{}
+% \mbox{\chapappifchapterprefix{\nobreakspace}\thechapter\autodot\IfUsePrefixLine{}{\enskip}}
+% No dots after figure or table numbers
+\renewcommand*{\figureformat}{\figurename~\thefigure}
+\renewcommand*{\tableformat}{\tablename~\thetable}
+
+% paragraph handling
+\setparsizes%
+    {1em}% indent
+    {0pt}% maximum space between paragraphs
+    {0pt plus 1fil}% last line not justified
+    
+
+% In the "Authors" section, author names are put in the \paragraph{} headings. To reduce the space after these  headings, the default {-1em} has been changed to {-.4em} below.
+\makeatletter
+\renewcommand\paragraph{\@startsection {paragraph}{4}{\z@ }{3.25ex \@plus 1ex \@minus .2ex}{-.4em}{\normalfont \normalsize \bfseries }
+}
+\makeatother
+
+% add the following (uncommented) in environments where you want to count paragraph numbers in the margin
+%    \renewcommand*{\paragraphformat}{%
+%    \makebox[-4pt][r]{\footnotesize\theparagraph\autodot\enskip}
+%    }
+%    \renewcommand{\theparagraph}{\arabic{paragraph}}
+%    \setcounter{paragraph}{0}
+%    \setcounter{secnumdepth}{4}
+    

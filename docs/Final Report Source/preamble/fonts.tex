@@ -1,0 +1,27 @@
+% Palatino font options
+\newfontfamily{\heavycolor}{MetropolisBold}
+[Extension = .otf]
+\newfontfamily{\contentfont}{Inter}
+[Extension = .otf]
+
+\addtokomafont{disposition}{\heavy }  % Palatino for titles etc.
+\setkomafont{descriptionlabel}{         % font for description lists    
+\usekomafont{captionlabel}\content     % Palatino bold
+}
+\setkomafont{caption}{\footnotesize}    % smaller font size for captions
+
+
+\usepackage{mathabx}                    % allows for nicer looking \cup, \curvearrowbotright, etc. !!IMPORTANT!! These are math symbols and should be surrounded by $dollar signs$
+\usepackage[normalem]{ulem}                       % allows for strikethrough with \sout etc.
+\newcommand{\sdot}{\color{RubineRed}.}
+\definecolor{dgrey}{RGB}{76, 76, 76}
+\newcommand{\content}{\contentfont \color{dgrey}}
+\newcommand{\heavy}{\heavycolor \color{Black}}
+\newcommand{\heavyred}{\heavycolor \color {RubineRed}
+
+\makeatletter
+\newcommand\HUGE{\@setfontsize\Huge{50}{60}}
+\makeatother    
+}
+
+\captionsetup[figure]{labelfont={bf},name={\heavy Figure},labelsep=period}

@@ -1,0 +1,24 @@
+% Title and Author of individual contributions
+\makeatletter
+\newcommand\headnum[1]{\renewcommand\@headnum{#1}}
+\newcommand\@headnum{}
+\newcommand\theheadnum{\@headnum} 
+% paper/review author = contributor
+\newcommand\contributor[1]{\renewcommand\@contributor{#1}}
+\newcommand\@contributor{}
+\newcommand\thecontributor{\@contributor} 
+% paper/review title = contribution
+\newcommand\contribution[1]{\renewcommand\@contribution{#1}}
+\newcommand\@contribution{}
+\newcommand\thecontribution{\@contribution}
+\newcommand\Contrib{\Huge\heavy\@contribution\sdot}
+% short contributor for running header
+\newcommand\shortcontributor[1]{\renewcommand\@shortcontributor{#1}}
+\newcommand\@shortcontributor{}
+\newcommand\theshortcontributor{\@shortcontributor} 
+% short title for running header
+\newcommand\shortcontribution[1]{\renewcommand\@shortcontribution{#1}}
+\newcommand\@shortcontribution{}
+\newcommand\theshortcontribution{\@shortcontribution}
+\makeatother
+

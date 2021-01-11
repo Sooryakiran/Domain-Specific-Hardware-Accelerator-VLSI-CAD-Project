@@ -1,0 +1,33 @@
+% No (sub)sections in TOC
+\setcounter{tocdepth}{0}                
+
+% \renewcommand*\contentsname{Contents\sdot}
+\addto\captionsenglish{
+    \renewcommand*\contentsname{\huge\heavy Contents\sdot}
+    \renewcommand{\cftchappresnum}{\heavy}
+    \renewcommand{\cftchapfont}{\content}
+    \renewcommand{\cftsecfont}{\content}
+    \renewcommand{\cftsubsecfont}{\content}
+    \renewcommand{\cftchapaftersnum}{\sdot}
+}
+
+\tocloftpagestyle{nonestyle}
+
+% Redefines chapter title formatting
+\makeatletter                               
+\def\@makechapterhead#1{
+  \vspace*{50\p@}%
+  {\parindent \z@ \normalfont
+    \interlinepenalty\@M
+    \Large\raggedright #1\par\nobreak%
+    \vskip 40\p@%
+  }}
+\makeatother
+% a bit more space between titles and page numbers in TOC
+
+
+
+\makeatletter   
+\renewcommand\@pnumwidth{2.5em} 
+\makeatother
+

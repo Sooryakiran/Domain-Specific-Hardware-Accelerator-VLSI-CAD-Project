@@ -1,0 +1,28 @@
+\usepackage{ifdraft}
+% uncommenting line 2 in main.tex will activate the following proof formatting:
+
+\ifdraft{
+%
+% 1. Add a watermark
+%
+    \usepackage{draftwatermark} 
+    \SetWatermarkText{PROOFS}       
+%
+% 2. Add line numbers
+%
+% !! UNCOMMENT WITH CAUTION !! 
+% The following option throws nasty errors in OVERLEAF, that are only solved after the servers reset (overnight). 
+% It does seem to work in TeXShop. 
+% 
+%    \usepackage[switch, modulo, pagewise]{lineno} 
+%    \linenumbers                   
+}{}                                      
+
+% this alternative doesn't work yet...
+%\makeatletter
+% \newsavebox{\@linebox}
+% \savebox{\@linebox}[3em][t]{\parbox[t]{3em}{%
+%   \@tempcnta\@ne\relax
+%   \loop{\underline{\scriptsize\the\@tempcnta}}\\
+%     \advance\@tempcnta by \@ne\ifnum\@tempcnta<48\repeat}}
+%\makeatother

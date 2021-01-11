@@ -1,0 +1,63 @@
+\documentclass[
+%draft%     uncomment to activate draft mode (see preamble/proofs)
+]{scrbook}   
+
+% preamble -- do not rearrange order of \includes
+\include{preamble/all}    
+
+% define issue details
+\newcommand\thejournal{Domain Specific Hardware Accelerators}
+\newcommand\thejournalsubtitle{Project Report}
+\newcommand\thevolume{1}
+\newcommand\theseason{July-Nov}
+\newcommand\theyear{2020}
+\newcommand\theissue{\thejournal \ \thevolume \ (\theyear)} 
+\newcommand\generaleditor{}
+\newcommand\associateeditor{}
+\sloppy
+\newcommand\thewebsite{}
+\renewcommand{\baselinestretch}{1.4}
+\begin{document}
+\sloppy                         % preferences more space between words over overrunning margins
+\lefthyphenmin=3                % suppresses hyphenation after only 1 or 2 characters
+                                % NB: You will need to repeat \lefthyphenmin in the text if you use \selectlanguage
+\include{front/titlepage}
+\include{front/colofon}
+\pagenumbering{roman}
+\tableofcontents  
+\thispagestyle{empty}
+
+% \include{essays/preface}
+\pagenumbering{arabic}
+% \renewcommand\bibname{References\sdot}
+
+\part[Overview]{Overview\sdot}
+\include{intro/intro_1}
+\include{intro/intro_2}
+\include{intro/intro_3}
+\include{intro/intro_4}
+
+\part[Vector Extensions]{Vector Extensions\sdot}
+\include{Vector/vector_1}
+\include{Vector/vector_2}
+\include{Vector/vector_3}
+\include{Vector/vector_4}
+
+\part[Demo]{Demo\sdot}
+\include{demo/demo_1}
+\include{demo/demo_2}
+\include{demo/demo_3}
+
+\part[Documentation]{Documentation\sdot}
+\include{docs/docs_0}
+\include{docs/docs_1}
+\include{docs/docs_2}
+\include{docs/docs_3}
+
+\part[References]{References\sdot}
+\include{references/ref_1}
+% \include{reviews/example-template}
+% \appendix
+% \include{back/licence-agreement-template}
+% \include{back/authors}
+\end{document}

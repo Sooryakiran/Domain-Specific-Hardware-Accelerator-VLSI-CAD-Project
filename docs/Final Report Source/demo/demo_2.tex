@@ -1,0 +1,169 @@
+\contribution{Demo, Vector Negate}
+\shortcontributor{CS6230 : CAD for VLSI Project Report}
+\shortcontribution{Demo}
+\headnum{10}
+\begin{paper}
+\renewcommand*{\pagemark}{}
+
+\section*{}
+In this demo, we will be generating a 32-bit CPU and attach it with a vector accelerator. \texttt{src\Demo\Demo2.bsv} contains the required setup concerning this. 
+\section*{Looking at Demo2.bsv\sdot}
+\texttt{Demo2.bsv} is different from \texttt{Demo1.bsv}. It contains our vector accelerator attached to the Bus.
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{haskell}
+`include <VX_Address.bsv> // Location where Accelerator is memory mapped
+
+`define WORD_LENGTH 32   // Here we are generating a 32 bit CPU
+`define DATA_LENGTH 32
+`define BUS_DATA_LEN 128 // When changing bus width, remember to increase memory ports 
+`define ADDR_LENGTH 20
+`define VECTOR_DATA_SIZE `BUS_DATA_LEN
+`define VX_STORAGE_SIZE 2
+
+`define GRANULARITY 8    // Smallest addressible unit (1 byte)
+`define RAM_BYTES 64     // Ram size (number of addressible units)
+`define RAM_PORTS 16     // 16 ports, 1 byte per port for 128 bit bus
+`define RAM_ADDRESS_OFFSET 1024
+
+`define CONSOLE_ADDRESS 128
+\end{minted}\\\\
+\nointed The vector accelerator is defined as attached as follows,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{haskell}
+VectorUnary #(`DATA_LENGTH,
+               `VECTOR_DATA_SIZE,
+               `BUS_DATA_LEN,
+               `ADDR_LENGTH,
+               `GRANULARITY) vec_Unary <- mkVectorUnary (`VX_ADDRESS, `VX_STORAGE_SIZE, 7);
+                                        // VX_ADDRESS <- Memory mapped address of Accelerator
+                                        // VX_STORAGE_SIZE <- Depth of temporary storage FIFOs
+Vector #(2, BusMaster #(`BUS_DATA_LEN, 
+                        `ADDR_LENGTH, 
+                        `GRANULARITY)) master_vec;
+
+Vector #(3, BusSlave  #(`BUS_DATA_LEN, 
+                        `ADDR_LENGTH, 
+                        `GRANULARITY)) slave_vec;
+
+...
+...
+...
+
+slave_vec[2]  = vec_Unary.bus_slave;
+
+Bus #(2, 3, `BUS_DATA_LEN, 
+            `ADDR_LENGTH, 
+            `GRANULARITY) bus <- mkBus(master_vec, slave_vec);
+
+mkConnection (master_vec, bus);
+mkConnection (slave_vec, bus);
+
+\end{minted}\\\\
+\section*{Running Demo Files\sdot}
+Four separate assembly files are provided for demonstrating vector negation on four different datatypes, \texttt{int8, int16, int32 & float32}. These files are located at,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{text}
+src/asm/vec_neg_f32_demo.asm
+src/asm/vec_neg_i8_demo.asm
+src/asm/vec_neg_i16_demo.asm
+src/asm/vec_neg_i32_demo.asm
+\end{minted}\\\\
+\nointend Here is a snippet of \texttt{src/Demo/vec\_neg\_i32\_demo.asm}. It initializes a vector of \texttt{int\_32}, of length 10 with numbers from 0 to 9. Vector negation is done and the output is printed. 
+
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines,
+escapeinside=||
+]{asm}
+ASG_32 R1 0         ; Initialisation
+ASG_32 R2 10        ; Num loops
+ASG_32 R3 1024      ; Address
+ASG_32 R4 1         ; Value increment delta
+ASG_32 R5 4         ; Address increment delta
+ASG_32 R0 128       ; Address of console
+loop_init: STORE_32 R1 R3      ;
+    STORE_32 R1 R0      ; Print console
+    ADD_I32 R1 R4 R1    ; Increment value
+    ADD_I32 R3 R5 R3    ; Increment address
+    ASG_32 R7 1
+    IS_EQ R1 R2 R6      ; Compare
+    ADD_I32 R6 R7 R6
+    ASG_32 R7 |\$|loop_init
+    JMPIF R7 R6         ; Jump if not Eq
+ASG_32 R3 1024
+VEC_NEG_I32 R3 R2 R3    ; Vector negation
+ASG_32 R1 0
+loop_print: LOAD_32 R3 R4   ; Load from memory
+    STORE_32 R4 R0          ; Print
+    ADD_I32 R3 R5 R3        ; Incement address
+    ASG_32 R4 1
+    ADD_I32 R1 R4 R1        ; Increment Loop
+    ASG_32 R7 1
+    IS_EQ R1 R2 R6          ; Compare
+    ADD_I32 R6 R7 R6
+    ASG_32 R7 |\$|loop_print
+    JMPIF R7 R6             ; Jump if not Eq
+\end{minted}\\\\
+
+\section*{Running the Simulation\sdot}
+Generate machine code by running, 
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd /src/asm
+./asm vec_neg_i32_demo.asm -o vector
+\end{minted}\\\\
+\nointend Since, we are generating for a 32-bit CPU in this example, we do not have to specify the \texttt{-w N} option. 32-bit is the default value. Also note that the output file name is consistent with the input taken from \texttt{Demo2.bsv}\\\\
+\nointend If compiling \texttt{Demo2.bsv} for the first time, run,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd src/Demo/
+./compile_and_sim.sh Demo2.bsv 
+\end{minted}\\\\
+\nointend Else, if you have already compiled once, then run,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd src/Demo/
+./out
+\end{minted}\\\\
+\nointend If no errors occur, you will get output similar to as shown below. Note that if you are running the demo on \texttt{float32}, the outputs are in IEEE 754 format hex and appear to not convey any legible information in \texttt{int}.
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+CONSOLE 00000000 |           0
+CONSOLE 00000001 |           1
+CONSOLE 00000002 |           2
+CONSOLE 00000003 |           3
+CONSOLE 00000004 |           4
+CONSOLE 00000005 |           5
+CONSOLE 00000006 |           6
+CONSOLE 00000007 |           7
+CONSOLE 00000008 |           8
+CONSOLE 00000009 |           9
+CONSOLE 00000000 |           0
+CONSOLE ffffffff |          -1
+CONSOLE fffffffe |          -2
+CONSOLE fffffffd |          -3
+CONSOLE fffffffc |          -4
+CONSOLE fffffffb |          -5
+CONSOLE fffffffa |          -6
+CONSOLE fffffff9 |          -7
+CONSOLE fffffff8 |          -8
+CONSOLE fffffff7 |          -9
+
+\end{minted}\\
+
+\end{paper}
+

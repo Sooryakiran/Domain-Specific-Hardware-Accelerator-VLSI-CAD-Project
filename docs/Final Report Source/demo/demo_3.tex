@@ -1,0 +1,98 @@
+\contribution{Demo, Statistics Minima}
+\shortcontributor{CS6230 : CAD for VLSI Project Report}
+\shortcontribution{Demo}
+\headnum{11}
+\begin{paper}
+\renewcommand*{\pagemark}{}
+
+\section*{}
+In this demo, we will initialize a vector with some values, and we will print its minima and minimum index. The assembly files required for this demo are located at,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{text}
+src/asm/vec_min_f32_demo.asm
+src/asm/vec_min_i8_demo.asm
+src/asm/vec_min_i16_demo.asm
+src/asm/vec_min_i32_demo.asm
+\end{minted}\\\\
+\nointend Here is a snippet from \texttt{vec\_min\_i8\_demo.asm}
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines,
+escapeinside=||
+]{asm}
+NOP                 ; Store Array [13, 12, 11, -13, 15]
+ASG_32 R3 128       ; Console address
+ASG_8 R1 13         ; Value
+ASG_32 R2 1024      ; Address
+STORE_8 R1 R2       ; Store to RAM
+STORE_8 R1 R3       ; Print
+ASG_8 R1 12         ; Value
+ASG_32 R2 1025      ; Address
+STORE_8 R1 R2       ; Store to RAM
+STORE_8 R1 R3       ; Print
+ASG_8 R1 11         ; Value
+ASG_32 R2 1026      ; Address
+STORE_8 R1 R2       ; Store to RAM
+STORE_8 R1 R3       ; Print
+ASG_8 R1 -13        ; Value
+ASG_32 R2 1027      ; Address
+STORE_8 R1 R2       ; Store to RAM
+STORE_8 R1 R3       ; Print
+ASG_8 R1 15         ; Value
+ASG_32 R2 1028      ; Address
+STORE_8 R1 R2       ; Store to RAM
+STORE_8 R1 R3       ; Print
+NOP
+ASG_32 R1 1024      ; Vector starting location
+ASG_32 R2 5         ; Vector size
+ASG_32 R4 1024      ; Minimum dst
+ASG_32 R5 1025      ; Argmin dst
+VEC_MIN_I8 R1 R2 R4 R5  ; Vec op
+LOAD_8 R4 R6        ; Load minima
+STORE_8 R6 R3       ; Print minima
+LOAD_8 R5 R7        ; Load argmin
+STORE_8 R7 R3       ; Print argmin
+\end{minted}\\\\
+
+\section*{Running the Simulation\sdot}
+Generate machine code by running, 
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd /src/asm
+./asm vec_min_i8_demo.asm -o vector
+\end{minted}\\\\
+\nointend Since, we are generating for a 32-bit CPU in this example, we do not have to specify the \texttt{-w N} option. 32-bit is the default value. Also note that the output file name is consistent with the input taken from \texttt{Demo2.bsv}\\\\
+\nointend If compiling \texttt{Demo2.bsv} for the first time, run,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd src/Demo/
+./compile_and_sim.sh Demo2.bsv 
+\end{minted}\\\\
+\nointend Else, if you have already compiled once, then run,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+cd src/Demo/
+./out
+\end{minted}\\\\
+\nointend If no errors occur, you will get output similar to as shown below. Note that if you are running the demo on \texttt{float32}, the outputs are in IEEE 754 format hex and appear to not convey any legible information in \texttt{int}. The last 2 lines represent the minimum value and the index of the minimum value (starting from 0) respectively. If multiple minima exists, the index with the lower value is outputted.
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+CONSOLE 0d |   13
+CONSOLE 0c |   12
+CONSOLE 0b |   11
+CONSOLE f3 |  -13
+CONSOLE 0f |   15
+CONSOLE f3 |  -13
+CONSOLE 03 |    3
+\end{minted}\\
+\end{paper}

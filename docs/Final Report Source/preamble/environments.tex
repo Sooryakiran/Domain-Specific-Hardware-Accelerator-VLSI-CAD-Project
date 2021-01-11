@@ -1,0 +1,143 @@
+% Environments
+\AtBeginEnvironment{quote}{\footnotesize\vskip 1em}
+\AtEndEnvironment{quote}{\vskip 1em}
+
+\setkomafont{caption}{\footnotesize}
+
+\tcbset{on line, 
+        boxsep=0pt, left=6pt,right=0pt,top=0pt,bottom=0pt,
+        colframe=white,colback=Gray!20
+        }
+        
+% Preface
+\newenvironment{preface}{
+    \phantomsection
+    
+    \addcontentsline{toc}{part}{Editors' Preface}
+    % enable running title
+    \pagestyle{preface}
+    % \chapter*{Editors' Preface}    
+    % reset the section counter for each paper
+    \setcounter{section}{0}  
+    % no running title on first page, page number center bottom instead
+    \thispagestyle{chaptertitlepage}
+}{}
+\AtEndEnvironment{preface}{%
+    %last page running header fix
+    \protect\thispagestyle{preface}
+}
+% Essays
+\newenvironment{paper}{
+    
+    \pagestyle{fancy}
+    % change section numbering FROM [\chapter].[\section].[\subsection] TO [\section].[\subsection] ETC.
+    \renewcommand{\thesection}{\arabic{section}}
+    % mark chapter % add author + title to the TOC
+    \chapter[\thecontribution]{
+    \vspace{-4em}
+    \tcbox[arc=7pt]{\parbox[b][10em][b]{\headwidth}{
+    \hspace{-0.6em} { 
+    \scalebox{2}{\heavyred\fontsize{24pt}{0pt}\selectfont \textbf{\theheadnum}}}
+    {\LARGE\hspace{5pt}\heavy \thecontribution\sdot}
+    % \hspace{5pt} {HI}
+    \vspace{6pt}
+    }}
+    }\vspace{-4em}    
+    % reset the section counter for each paper
+    \setcounter{section}{0}  
+    % reset the figure counter for each paper
+    \renewcommand\thefigure{\arabic{figure}}    
+    % reset the table counter for each paper
+    \renewcommand\thetable{\arabic{table}} 
+    % no running title on first page, page number center bottom instead, include copyright statement
+    \thispagestyle{contributiontitlepage}
+    % formatting for the bibliography
+    \bibliographystyle{variantex}
+
+}{}
+\AtBeginEnvironment{paper}{
+    % keeps running title from the first page:
+    \protect\thispagestyle{fancy}% 
+    \renewcommand*{\pagemark}{}%                            
+}
+\AtEndEnvironment{paper}{
+    % last page running header fix
+    \renewcommand*{\pagemark}{}%  
+    \protect\thispagestyle{fancy}%                              
+}
+% Reviews
+\newenvironment{review}{
+    \phantomsection
+    % start every new paper on an uneven page 
+    
+    % enable running title
+    \pagestyle{reviews}
+    % change section numbering FROM [\chapter].[\section].[\subsection] TO [\section].[\subsection] ETC.
+    \renewcommand{\thesection}{\arabic{section}} 
+    % mark chapter % add author + title to the TOC
+    \chapter[\normalfont\textbf{\emph{\thecontributor}}: \thecontribution]{}    % reset the section counter for each paper
+    \setcounter{section}{0}  
+    % no running title on first page, page number center bottom instead, include copyright statement
+    \thispagestyle{contributiontitlepage}
+    % formatting for the bibliography
+    \bibliographystyle{variantex}
+}{}
+\AtBeginEnvironment{review}{
+% keeps running title from the first page
+    \renewcommand*{\pagemark}{}%                                   
+}
+\AtEndEnvironment{review}{
+    % author name(s)
+    \begin{flushright}\emph{\thecontributor}\end{flushright}
+    % last page running header fix
+    \protect\thispagestyle{reviews}                           
+}
+
+% Abstract
+\newenvironment{abstract}{% 
+\setlength{\parindent}{0pt} \begin{adjustwidth}{2em}{2em}\footnotesize\emph{\abstractname}: }{%
+\vskip 1em\end{adjustwidth}
+}{}
+
+% Keywords
+\newenvironment{keywords}{
+\setlength{\parindent}{0pt} \begin{adjustwidth}{2em}{2em}\footnotesize\emph{Keywords}: }{%
+\vskip 1em\end{adjustwidth}
+}{}
+
+% Review Abstract
+\newenvironment{reviewed}{% 
+\setlength{\parindent}{0pt}
+    \begin{adjustwidth}{2em}{2em}\footnotesize}{%
+\vskip 1em\end{adjustwidth}
+}{}
+
+\newenvironment{refs}{% 
+\setlength{\parindent}{0pt}
+\pagestyle{refs}
+\renewcommand*{\pagemark}{}%  
+{\heavy\Huge References\sdot\hfill\break}
+}{}
+
+\AtBeginEnvironment{refs}{
+% keeps running title from the first page
+    \renewcommand*{\pagemark}{}%                                   
+}
+\AtEndEnvironment{refs}{
+    % author name(s)
+    \begin{flushright}\emph{\thecontributor}\end{flushright}
+    % last page running header fix
+    \protect\thispagestyle{refs}                           
+}
+
+
+% Motto
+\newenvironment{motto}{% 
+\setlength{\parindent}{0pt} \small\raggedleft}{%
+\vskip 2em
+}{}
+
+
+% Example
+\newcounter{example}[chapter]
+\newenvironment{example}[1][]{\refstepcounter{example}\begin{quote} \rmfamily}{\begin{flushright}(Example~\theexample)\end{flushright}\end{quote}}

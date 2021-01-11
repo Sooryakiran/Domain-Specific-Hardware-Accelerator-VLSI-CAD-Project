@@ -1,0 +1,25 @@
+% colours for code notations
+\usepackage{listings}       
+	\renewcommand\lstlistingname{Quelltext} 
+	\lstset{                    % basic formatting (bash etc.)
+	       basicstyle=\ttfamily,
+ 	       showstringspaces=false,
+	       commentstyle=\color{BrickRed},
+	       keywordstyle=\color{RoyalBlue}
+	}
+	\lstdefinelanguage{XML}{     % specific XML formatting overrides
+		  basicstyle=\ttfamily,
+		  morestring=[s]{"}{"},
+		  morecomment=[s]{?}{?},
+		  morecomment=[s]{!--}{--},
+		  commentstyle=\color{OliveGreen},
+		  moredelim=[s][\color{Black}]{>}{<},
+		  moredelim=[s][\color{RawSienna}]{\ }{=},
+		  stringstyle=\color{RoyalBlue},
+ 		  identifierstyle=\color{Plum}
+	}
+    % HOW TO USE? BASH EXAMPLE
+    %   \begin{lstlisting}[language=bash]
+    %   #some comment
+    %   cd Documents
+    %   \end{lstlisting}
