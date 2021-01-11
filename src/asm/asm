@@ -4,6 +4,11 @@ import sys
 import struct
 import argparse
 
+"""
+Definintions 
+
+"""
+
 WORD_LENGTH = 32
 OUT = "out"
 ops =  ["NOP",
@@ -46,25 +51,66 @@ ops =  ["NOP",
 
 regs = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "NO"]
 
+
 def fill(code):
+    """
+    Zero padding the MSB
+
+    @param   code : bits without padding
+    @returns padded bits
+
+    """
     return code + "0"*(WORD_LENGTH - len(code))
 
+
 def int_to_bin(x, n):
+    """
+    Convert integer to its binary representation in 2's compliment
+    
+    @param x : (int) Input integer
+    @param n : (int) Bit width
+    @returns binary representation
+
+    """
     return '{0:{fill}{width}b}'.format((x + 2**n) % 2**n, fill='0', width=n)
 
+
 def op_to_bin(opcode):
+    """
+    Returns the binary representation of an Opcode (5 bits)
+
+    """
     return int_to_bin(ops.index(opcode), 5)
 
+
 def reg_to_bin(reg):
+    """
+    Returns the binary representation of a Regname (4 bits)
+
+    """
     return int_to_bin(regs.index(reg), 4)
 
+
 def float_to_f32(num):
+    """
+    Returns the binary representation of a number in float32
+
+    """
     return bin(struct.unpack('!i',struct.pack('!f',num))[0])
 
+
 def opnop():
+    """
+    Machine code for NOP
+
+    """
     return traditional("NOP", "NO", "NO", "NO", "NO")
 
 def asg8(line):
+    """
+    Machine code for ASG_8
+
+    """
     tokens = line.split()
     op     = op_to_bin(tokens[0])
     reg    = reg_to_bin(tokens[1])
@@ -72,13 +118,21 @@ def asg8(line):
         value  = int_to_bin(int(tokens[2]), 32)
     else:
         value  = int_to_bin(int(tokens[2]), 16)
-    # print(fill(op + reg + value))
     return fill(op + reg + value)
 
+
 def asg16(line):
+    """
+    Machine code for ASG_16
+    """
     return asg8(line)
 
+
 def asg32(line):
+    """
+    Machine code for ASG_32
+
+    """
     tokens = line.split()
     op     = op_to_bin(tokens[0])
     reg    = reg_to_bin(tokens[1])
@@ -101,7 +155,6 @@ def asg32(line):
                 else:
                     out.append('0')
             value = ''.join(out)
-
     else:
         value = int_to_bin(int(number), 32)
 
@@ -111,7 +164,12 @@ def asg32(line):
     else:
         return [fill(op + reg), fill(value)]
 
+
 def traditional(op, src1, src2, aux, dst):
+    """
+    Returns the machine code for compute ops
+
+    """
     return fill(op_to_bin(op) +\
                 reg_to_bin(src1) +\
                 reg_to_bin(src2) +\
@@ -119,70 +177,122 @@ def traditional(op, src1, src2, aux, dst):
                 reg_to_bin(dst))
 
 
+
 def mov(line):
+    """
+    Returns the machine code for MOV
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], "NO", "NO", tokens[2])
 
+
 def addsub(line):
+    """
+    Returns the machine code for ADD_IX and SUB_IX ops
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], "NO", tokens[3])
+
 
 def iseq(line):
+    """
+    Returns the machine code for IS_EQ
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], "NO", tokens[3])
 
+
 def jmp(line):
+    """
+    Returns the machine code for JMP
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], "NO", "NO", "NO")
 
+
 def jmpif(line):
+    """
+    Returns the machine code for JMP_IF
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], "NO", "NO")
 
+
 def load(line):
+    """
+    Returns the machine code for LOAD_X
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], "NO", "NO", tokens[2])
 
+
 def store(line):
+    """
+    Returns the machine code for STORE_X
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], "NO", "NO")
 
+
 def vecneg(line):
+    """
+    Returns the machine code for VEC_NEG_X
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], tokens[3], "NO")
 
 def vecmin(line):
+    """
+    Returns the machine code for VEC_MIN_X
+
+    """
     tokens = line.split()
     return traditional(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4])
 
+
 def main(file_name):
-    # file_name = sys.argv[1]
-    outs = []
+    """
+    Parse the input file line by line and produce the corresponding machine leanguage.
+    Note: Single pass only, so labels must be defined before they are used.
+
+    @param file_name : (string) input path of the assembly file
+    """
+
+    outs         = []
     current_line = 0
-    labels = {}
+    labels       = {}
     with open(file_name) as f:
         lines = f.readlines()
-        i = 0
+        i     = 0
         for line in lines:
             i+=1
             try:
                 if True:
                     if ":" in line:
-                        parts = line.split(":")
-                        label = parts[0]
+                        parts         = line.split(":")
+                        label         = parts[0]
                         labels[label] = current_line
-                        line = parts[1]
+                        line          = parts[1]
+
                     tokens = line.split()
-                    op = tokens[0]
+                    op     = tokens[0]
 
                     if "$" in line:
                         part_1 = line.split()
                         for part in part_1:
                             if "$" in part:
                                 replace = str(labels[part.split("$")[1]])
-                                line = line.replace(part, replace)
+                                line    = line.replace(part, replace)
                                 
-                    if op == "NOP":
+                    if op   == "NOP":
                         outs.append(opnop())
                     elif op == "ASG_8":
                         outs.append(asg8(line))
