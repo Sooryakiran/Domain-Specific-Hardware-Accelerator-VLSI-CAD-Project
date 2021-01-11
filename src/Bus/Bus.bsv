@@ -38,7 +38,7 @@ typedef enum {Response, Read, Write} ControlSignal deriving (Bits, Eq, FShow);
 
 typedef TLog #(TAdd #(TDiv #(datasize, granularity), 1)) 
 PresentSize #(numeric type datasize,
-                numeric type granularity);
+              numeric type granularity);
 
 
 typedef struct {ControlSignal control;
@@ -92,8 +92,8 @@ endinterface
 
 // An interface for the bus slave
 interface BusSlave #(numeric type datasize,
-                    numeric type addrsize, 
-                    numeric type granularity);
+                     numeric type addrsize, 
+                     numeric type granularity);
     // Front end
     interface Get #(Chunk #(datasize, addrsize, granularity)) job_recieve;
     interface Put #(Chunk #(datasize, addrsize, granularity)) job_done;
@@ -228,7 +228,7 @@ endmodule
 
 
 // Module defintion for a BusMaster
-// Param id          : Integer id for the slave
+// Param id          : Integer id for the master
 module mkBusMaster #(Integer id) (BusMaster #(datasize, addrsize, granularity));
     
     Reg #(Bool) need_bus    <- mkReg(False);
