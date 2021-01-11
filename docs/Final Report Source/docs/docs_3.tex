@@ -1,0 +1,77 @@
+\contribution{Vector Accelerators}
+\shortcontributor{CS6230 : CAD for VLSI Project Report}
+\shortcontribution{Documentation}
+\headnum{15}
+\begin{paper}
+\renewcommand*{\pagemark}{}
+
+\section*{Packages\sdot}
+\texttt{import VectorUnary :: * ;}
+\section*{Description\sdot}
+The package includes a vector accelerator for unary operations.
+\section*{Vector Interfaces\sdot}
+The package includes a \texttt{VectorUnary} interface that wraps around everything. 
+
+\subsection*{VectorUnary\sdot}
+The \texttt{VectorUnary} interface consists of a \texttt{BusMaster} to connect with the Bus and issue \texttt{Read/Write} requests to the memory. It also consists a \texttt{BusSlave} to respond to the requests from the CPU.
+
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{Haskell}
+// Interface of the Vector accelerator
+// Param datasize       : Datasize of the Registers
+// Param vectordatasize : Number of bits that can be parallelly operated upon
+// Param busdatasize    : Width of the databus
+// Param busaddrsize    : Width of the address bus
+// Param granularity    : The smallest addressable unit size
+interface VectorUnary #(numeric type datasize,
+                        numeric type vectordatasize,
+                        numeric type busdatasize,
+                        numeric type busaddrsize,
+                        numeric type granularity);
+
+    interface BusMaster #(busdatasize, busaddrsize, granularity) bus_master;
+    interface BusSlave  #(busdatasize, busaddrsize, granularity) bus_slave;
+    
+endinterface
+
+\end{minted}\\\\
+
+
+
+\section*{Modules\sdot}
+The VectorUnary can be constructed using,
+\subsubsection*{mkVectorUnary\sdot}
+Creates the VectorUnary interface.
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{Haskell}
+// Creates a vector unary accelerator
+// Param address           : Memory mapped address of the accelerator
+// Param temp_storage_size : Size of the temp. data storage FIFOFs
+// Param id                : ID of the unit
+module mkVectorUnary #(Bit #(busaddrsize) address, 
+                       Integer temp_storage_size, 
+                       Integer id) (VectorUnary #(datasize, 
+                                                  vectordatasize, 
+                                                  busdatasize, 
+                                                  busaddrsize, 
+                                                  granularity))
+    provisos (Add #(na, datasize, busdatasize), 
+                Add #(nb, 1,        busdatasize), 
+                Add #(nc, SizeOf #(Opcode), busdatasize), 
+                Add #(nd, vectordatasize, busdatasize),
+                Mul #(ne, granularity, vectordatasize),
+                Add #(nf, PresentSize #(vectordatasize, granularity), PresentSize #(busdatasize, granularity)),
+                Add #(ng, 8, vectordatasize),
+                Add #(nh, 16, vectordatasize),
+                Add #(ni, 32, vectordatasize),
+                Add #(nj, 8,  busdatasize),
+                Add #(nk, 16, busdatasize),
+                Add #(nl, 32, busdatasize));
+\end{minted}
+\end{paper}
+
+

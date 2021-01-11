@@ -1,0 +1,11 @@
+% footnotes
+\renewcommand{\footnoterule}{%
+    \kern .5em  % call this kerna
+    \hrule height 0.4pt width .2\columnwidth    % the .2 value made the footnote ruler (horizontal line) smaller (was at .4)
+    \kern .5em % call this kernb
+}
+\usepackage{footmisc}               
+\renewcommand{\footnotelayout}{
+    \hspace{1.5em}    % space between footnote mark and footnote text
+}    
+\newcommand{\mytodo}[1]{\textcolor{red}{#1}}

@@ -1,0 +1,77 @@
+\contribution{CPU}
+\shortcontributor{CS6230 : CAD for VLSI Project Report}
+\shortcontribution{Documentation}
+\headnum{14}
+\begin{paper}
+\renewcommand*{\pagemark}{}
+
+\section*{Packages\sdot}
+\texttt{import CPU :: * ;}
+\section*{Description\sdot}
+The CPU package includes a 2 stage pipelined inorder CPU.
+
+\section*{CPU Interfaces\sdot}
+The package includes a \texttt{CPU} interface that wraps around everything. 
+
+\subsection*{CPU\sdot}
+The \texttt{CPU} interface consists of a \texttt{BusMaster} to connect with the Bus. It also has an \texttt{Imem} Interface.
+
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{Haskell}
+// An interface ot out CPU to connect with the Instruction Memory and the Bus
+// Param wordlength     : Wordlength of out CPU, 32-Bit onwards supported
+// Param datalength     : Length of the data registers
+// Param busdatalength  : Width of the databus for the bus interface
+// Param busaddrlength  : Width of the addressbus for the bus interface
+// Param granularity    : Size of the smallest addresable unit. eg 1 Byte in RAMs
+interface CPU #(numeric type wordlength, 
+                numeric type datalength, 
+                numeric type busdatalength, 
+                numeric type busaddrlength, 
+                numeric type granularity);
+    interface Imem #(wordlength) imem;
+    interface BusMaster #(busdatalength, 
+                            busaddrlength, 
+                            granularity) bus_master;
+endinterface
+
+typedef Server #(Bit #(wordlength), Bit #(wordlength)) Imem #(numeric type wordlength);
+
+\end{minted}\\\\
+
+
+
+\section*{Modules\sdot}
+The CPU can be constructed using,
+\subsubsection*{mkCPU\sdot}
+Creates the CPU interface.
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{Haskell}
+// Creates a minimal 2 stage inorder pipelined CPU
+// Param cpu_id : ID of the CPU (only for identification during debug)
+// Param rom    : A string containing the path of the init IMEM
+module mkCPU #(Integer cpu_id, String rom) (CPU #(wordlength, 
+                                                    datalength, 
+                                                    busdatalength, 
+                                                    busaddrlength, 
+                                                    granularity))
+
+    provisos (Add# (na, 32, datalength), 
+              Add# (nb, 32, busdatalength), 
+              Add# (nc, 16, datalength),
+              Add# (nd, 16, busdatalength),
+              Add# (ne, 8,  datalength),
+              Add# (nf, SizeOf #(Opcode),  datalength),
+              Add# (ng, 8,  busdatalength),
+              Add# (nh, 1,  busdatalength),
+              Add# (ni, busaddrlength, TAdd#(TMax#(datalength, busaddrlength), 1)),
+              Add# (wordlength,0, SizeOf #(Instruction #(wordlength))),
+              Add# (nj, 16, TAdd#(wordlength, datalength)));
+\end{minted}
+\end{paper}
+
+

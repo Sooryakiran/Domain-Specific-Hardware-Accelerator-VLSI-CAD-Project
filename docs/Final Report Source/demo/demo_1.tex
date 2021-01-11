@@ -1,0 +1,144 @@
+\contribution{CPU Demo, The Fibonacci Series}
+\shortcontributor{CS6230 : CAD for VLSI Project Report}
+\shortcontribution{Demo}
+\headnum{9}
+\begin{paper}
+\renewcommand*{\pagemark}{}
+
+\section*{}
+To demonstrate the capabilities of the CPU and the accelerator, we have included a few demo test benches. These can be run from \texttt{src/Demo/Demo.bspec}. There are 2 bsv test benches, \texttt{Demo1.bsv and Demo2.bsv}. \texttt{Demo1.bsv} contains only the CPU whereas \texttt{Demo2.bsv} contains both CPU and the accelerator. 
+
+\section*{The Assembly Code\sdot}
+The assembly code for printing the first ten elements of the CPU is located in \texttt{src/asm/fibonacci\_asm.asm}. The code snippet is as given below.
+\begin{minted}[
+bgcolor=Gray !5,
+escapeinside=||
+]{nasm}
+NOP                     ; A test code to print that prints the Fibonacci series
+ASG_32 R7 128           ; Assign the address of the console
+ASG_32 R1 1             ; Initialize first two elements
+ASG_32 R2 1             ;
+ASG_32 R6 8             ; Loop count. Print 10 (first 2 + 8)  
+ASG_32 R5 0             ; Loop initialise
+ASG_32 R4 1             ; Loop increment
+STORE_32 R1 R7          ; Print first 2 values through memory mapped console
+STORE_32 R2 R7          ;
+loop: ADD_I32 R1 R2 R3       ; Calculate the next element
+    ASG_32 R7 128            ; Assign the console address again
+    STORE_32 R3 R7           ; Print the new term
+    MOV R2 R1                ; Forget the past and move ahead
+    MOV R3 R2                ; 
+    ADD_I32 R5 R4 R5         ; Loop increment          
+    IS_EQ R5 R6 R3           ; 
+    ADD_I32 R3 R4 R3         ; IS_EQ outputs 1 if true. But we need 1 to jump.  
+    ASG_32 R7 |\$|loop          ; Jump branch destination      
+    JMPIF R7 R3              ; Conditional Jump
+\end{minted}\\\\
+\nointend To generate machine code run,
+\begin{minted}[
+bgcolor=Gray !5
+]{bash}
+cd src/asm
+./asm fibonacci_asm.asm -o fibonacci -w 64
+\end{minted}\\\\
+\nointend Here \texttt{-o fibonacci} is the output file name and \texttt{-w 64} tells the assembler than we are generating code for a 64-bit machine.\\\\
+\nointend To run the simulation, execute,
+\begin{minted}[
+bgcolor=Gray !5
+]{bash}
+cd src/Demo
+./compile_and_sim.sh Demo1.bsv
+\end{minted}\\\\
+\nointend If you have already compiled once, just run,
+\begin{minted}[
+bgcolor=Gray !5
+]{bash}
+cd src/Demo
+./out
+\end{minted}\\\\
+\nointend If no errors occur, you will get the final outputs as,
+\begin{minted}[
+bgcolor=Gray !5,
+breaklines
+]{bash}
+...
+Running ./out
+Warning: file '../asm/fibonacci' for memory 'my_core_imem_c_memory' has a gap at addresses 19 to 18446744073709551615.
+CONSOLE 00000001 |           1
+CONSOLE 00000001 |           1
+CONSOLE 00000002 |           2
+CONSOLE 00000003 |           3
+CONSOLE 00000005 |           5
+CONSOLE 00000008 |           8
+CONSOLE 0000000d |          13
+CONSOLE 00000015 |          21
+CONSOLE 00000022 |          34
+CONSOLE 00000037 |          55
+
+\end{minted}\\\\
+\section*{Looking at Demo1.bsv\sdot}
+Here is a snippet from \texttt{Demo1.bsv} that specifies the machine parameters.
+\begin{minted}[
+bgcolor=Gray !5
+]{haskell}
+`define WORD_LENGTH 64  // We are making a 64 bit machine
+`define DATA_LENGTH 32  // The data size of our machine
+`define BUS_DATA_LEN 32 // Data bus width
+`define ADDR_LENGTH 20  // Addr bus width
+
+`define GRANULARITY 8   // Smallest addressible unit (1 Byte at every address)
+`define RAM_BYTES 64    // Ram size (number of addressible units)
+`define RAM_PORTS 4     // 4 ports, 4 x 8 for 32 bit bus
+
+`define RAM_ADDRESS_OFFSET 1000 // Address of the RAM
+`define CONSOLE_ADDRESS 128     // Address of the Console
+\end{minted}\\\\
+\nointend The console is just a slave connected to the bus that prints everything written to its address. It is made only for debugging purposes. Notice that we are writing to address 128 in the above assembly code to print the value.
+\begin{minted}[
+bgcolor=Gray !5
+]{haskell}
+CPU #(`WORD_LENGTH,
+      `DATA_LENGTH, 
+      `BUS_DATA_LEN, 
+      `ADDR_LENGTH, 
+      `GRANULARITY) 
+      my_core <- mkCPU(1, "../asm/fibonacci"); // CPU_ID 1, Initialize IMEM
+\end{minted}\\\\
+\nointend We transfer the generated machine code to the CPU to initialize the instruction memory while instantiating.
+\begin{minted}[
+bgcolor=Gray !5
+]{haskell}
+DRAMSlave #(`GRANULARITY, 
+            `RAM_BYTES, 
+            `RAM_ADDRESS_OFFSET, 
+            `BUS_DATA_LEN, 
+            `ADDR_LENGTH,
+            `RAM_PORTS) my_dram    <- mkDRAMSlave(0);
+
+Console #(`BUS_DATA_LEN,
+          `ADDR_LENGTH,
+          `GRANULARITY)      my_console <- mkConsole(1, `CONSOLE_ADDRESS);
+
+Vector #(1, BusMaster #(`BUS_DATA_LEN, 
+                        `ADDR_LENGTH, 
+                        `GRANULARITY)) master_vec;
+
+Vector #(2, BusSlave  #(`BUS_DATA_LEN, 
+                        `ADDR_LENGTH, 
+                        `GRANULARITY)) slave_vec;
+
+
+master_vec[0] = my_core.bus_master;
+slave_vec[0]  = my_dram.dram_slave;
+slave_vec[1]  = my_console.bus_slave;
+
+Bus #(1, 2,             // 1 master, 2 slaves
+      `BUS_DATA_LEN, 
+      `ADDR_LENGTH, 
+      `GRANULARITY) bus <- mkBus(master_vec, slave_vec);
+
+mkConnection (master_vec, bus);
+mkConnection (slave_vec, bus);
+\end{minted}\\\\
+\nointend Here you can see how all BusMaster and BusSlave interfaces are connected to the main Bus. The vectors of all BusMasters and Slaves are passed to the \texttt{mkBus(..)}. Also \texttt{mkConnection (..)} is used to connect the interfaces. \\\\
+\end{paper}
