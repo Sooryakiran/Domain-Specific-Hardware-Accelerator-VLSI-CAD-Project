@@ -28,4 +28,4 @@ See https://arm-software.github.io/CMSIS_5/DSP/html/group__groupMath.html for de
 A minimal custom bus for demonstration.
 
 # Documentation
-See docs/Final Report.pdf
+See Final Report.pdf
