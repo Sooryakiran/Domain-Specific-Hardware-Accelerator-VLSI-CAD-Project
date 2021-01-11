@@ -6,7 +6,7 @@ CS6230 : CAD for VLSI.
 Fall, 2020.
 
 ## What does this repo enclose?
-![Overview](docs/Final\ Report\ Source/Images/Overview-Overview.png "Overview")
+![Overview](https://raw.githubusercontent.com/Sooryakiran/Domain-Specific-Hardware-Accelerator-VLSI-CAD-Project/main/docs/Final%20Report%20Source/Images/Overview-Overview.png )
 
 The following components are implemented in Bluespec System Verilog:
 * CPU
